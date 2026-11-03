@@ -41,13 +41,19 @@ test('the context hook injects for a set-up project and for its agents', () => {
   mkdirSync(join(root, '.claude/hecpack'), { recursive: true });
   writeFileSync(join(root, '.claude/hecpack/context-map.json'), JSON.stringify(manifest));
   writeFileSync(join(root, 'notes.md'), '# Notes\nvalidation: npm test\n');
-  const run = (input) => JSON.parse(execFileSync('node', [join(PLUGIN, 'scripts/hooks/context.mjs'), '--part', '1'], {
-    input: JSON.stringify({ session_id: 's1', cwd: root, ...input }), env: { ...process.env, CLAUDE_PROJECT_DIR: root },
-  }).toString());
-  const prompt = run({ hook_event_name: 'UserPromptSubmit', prompt: '[s] fix it' });
-  assert.match(prompt.hookSpecificOutput.additionalContext, /# Workflow/);
+  const run = (input, part = 1) => {
+    const out = execFileSync('node', [join(PLUGIN, 'scripts/hooks/context.mjs'), '--part', String(part)], {
+      input: JSON.stringify({ session_id: 's1', cwd: root, ...input }), env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+    }).toString();
+    return out ? JSON.parse(out).hookSpecificOutput.additionalContext : '';
+  };
+  // Each part is its own process, as Claude Code runs them: together they carry the whole set.
+  const prompt = Array.from({ length: HOOK_PARTS }, (_, i) => run({ hook_event_name: 'UserPromptSubmit', prompt: '[s] fix it' }, i + 1)).join('\n');
+  assert.match(prompt, /# Main session/);
+  assert.match(prompt, /# Workflow/);
+  assert.ok(!/More mandatory rules did not fit/.test(prompt));
   const agent = run({ hook_event_name: 'SubagentStart', agent_type: 'hecpack:checker' });
-  assert.match(agent.hookSpecificOutput.additionalContext, /validation: npm test/);
+  assert.match(agent, /validation: npm test/);
 });
 
 test('model overrides must fit agentModels', () => {

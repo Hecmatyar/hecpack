@@ -81,3 +81,20 @@ test('overlaps with an existing setup are named', () => {
   const { detection } = setup('nx-expo', 'standard');
   assert.deepEqual(warnings(detection.claude).map((item) => item.id), ['hooks', 'agents']);
 });
+
+test('the plugin and package versions match, so an update reaches the users', () => {
+  const plugin = JSON.parse(readFileSync(join(PLUGIN, '.claude-plugin/plugin.json'), 'utf8'));
+  const pkg = JSON.parse(readFileSync(join(PLUGIN, 'package.json'), 'utf8'));
+  assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(plugin.version, pkg.version);
+});
+
+test('code sessions and the architect get the code rules', () => {
+  for (const level of ['lite', 'standard', 'deep']) {
+    const { files } = setup('nx-expo', level);
+    const map = JSON.parse(file(files, '.claude/hecpack/context-map.json').content);
+    assert.ok(map.types.code.includes('hecpack:core/code.md'), level);
+    if (level !== 'lite') assert.ok(map.agents['hecpack:architect'].includes('hecpack:core/code.md'), level);
+    assert.match(files.find((item) => item.id === 'claudeMd').content, /## hecpack\n[\s\S]*### Compact instructions/);
+  }
+});

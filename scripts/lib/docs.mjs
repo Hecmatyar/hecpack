@@ -32,6 +32,8 @@ export const TOPICS = {
   context: ['context', 'compact', 'handoff', 'session', 'memory', 'контекст', 'сессия'],
   reports: ['report', 'summary', 'progress', 'verbose', 'concise', 'отчёт', 'отчет', 'кратко'],
   style: ['naming', 'format', 'prettier', 'indent', 'semicolon', 'style guide', 'именован', 'форматир'],
+  errors: ['error handling', 'errors', 'toast', 'logging', 'console.error', 'exception', 'ошибк'],
+  ui: ['design system', 'design token', 'spacing', 'icons', 'localization', 'i18n', 'translation', 'дизайн', 'отступ', 'локализац'],
 };
 
 const isDir = (path) => {

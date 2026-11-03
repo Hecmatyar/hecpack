@@ -40,8 +40,8 @@ const contextMap = (level, rules = [], agentList = ['hecpack:checker']) => {
     q: [core('session.md'), stack],
     code:
       level === 'lite'
-        ? [core('session.md'), `${core('workflow.md')}#Triage`, stack, ...rules]
-        : [core('session.md'), core('workflow.md'), stack, map, ...rules],
+        ? [core('session.md'), `${core('workflow.md')}#Triage`, core('code.md'), stack, ...rules]
+        : [core('session.md'), core('workflow.md'), core('code.md'), stack, map, ...rules],
   };
   const tags = { q: 'q', code: 'code', s: 'code', m: 'code' };
   const keywords = {};
@@ -65,7 +65,7 @@ const contextMap = (level, rules = [], agentList = ['hecpack:checker']) => {
   }
   const agents = { 'hecpack:checker': [stack] };
   if (level !== 'lite') {
-    agents['hecpack:architect'] = [stack, map, ...rules];
+    agents['hecpack:architect'] = [core('code.md'), stack, map, ...rules];
     agents['hecpack:thinker'] = [stack, map];
   }
   if (agentList.includes('hecpack:designer')) agents['hecpack:designer'] = [stack, map, ...rules];
@@ -196,6 +196,10 @@ const claudeSection = (level) =>
     CLAUDE_SECTION_HEADING,
     '',
     `This project uses the hecpack plugin at the ${level} level. Its rules load automatically through its hooks from \`${HOME}/context-map.json\`; the project's own specifics (stack, validation, folders) live in \`${HOME}/\`. Keep them there rather than in this file.`,
+    '',
+    '### Compact instructions',
+    '',
+    "When compacting, keep: the user's task in their words and every decision or correction they made (with the options they rejected); the triage class, the architect's behavior list and plan, and the departures from it with their reasons; the files changed so far and what is left; open questions to the user; the validation status (what passed, what failed with its error line); the ids of running subagents and background sessions; the paths of this task's briefs and reports in `tmp/handoff/`. Drop file contents, search output and full logs: they are read again from disk.",
     '',
   ].join('\n');
 

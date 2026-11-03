@@ -30,7 +30,7 @@ One `AskUserQuestion` with these questions (skip a question the arguments alread
 
 ## 3. Go through the rules the project already has
 
-`docs` lists the rule documents found (CLAUDE.md, AGENTS.md, Cursor or Copilot rules, `.claude/rules`, `.claude/docs`, contributor docs) with their headings and the hecpack topics each one touches. Read each one (Read; for a file over 400 lines read the sections whose headings touch a hecpack topic). Read hecpack's core rules once: `${CLAUDE_PLUGIN_ROOT}/core/session.md`, `workflow.md`, `coordination.md`.
+`docs` lists the rule documents found (CLAUDE.md, AGENTS.md, Cursor or Copilot rules, `.claude/rules`, `.claude/docs`, contributor docs) with their headings and the hecpack topics each one touches. Read each one (Read; for a file over 400 lines read the sections whose headings touch a hecpack topic). Read hecpack's core rules once: `${CLAUDE_PLUGIN_ROOT}/core/session.md`, `workflow.md`, `code.md`, `coordination.md`.
 
 Sort every rule you find into three groups, and report them as one compact list, grouped:
 
