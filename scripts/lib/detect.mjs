@@ -1,17 +1,18 @@
 // Reads a project without changing it: workspaces, technologies with their versions and evidence, the
-// validation commands, the folders for the project map, the Claude setup the project already has and the
-// rule documents it keeps for its agents (docs.mjs).
+// validation commands, the folders for the project map, the Claude setup the project already has, the
+// rule documents it keeps for its agents (docs.mjs) and its layout for move (layout.mjs).
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { findDocs } from './docs.mjs';
+import { readLayout } from './layout.mjs';
 
-const SKIP_DIRS = new Set([
+export const SKIP_DIRS = new Set([
   'node_modules', 'dist', 'build', 'out', 'out-tsc', 'tmp', 'coverage', '.git', '.next', '.expo',
   '.turbo', '.nx', 'Pods', 'vendor', 'target', '__pycache__', '.venv', 'venv',
 ]);
 
-const readJson = (file) => {
+export const readJson = (file) => {
   try {
     return JSON.parse(readFileSync(file, 'utf8'));
   } catch {
@@ -57,7 +58,7 @@ export const matchPath = (dir, pattern) => {
   return current;
 };
 
-const packageManager = (root) => {
+export const packageManager = (root) => {
   if (existsSync(join(root, 'pnpm-lock.yaml'))) return 'pnpm';
   if (existsSync(join(root, 'yarn.lock'))) return 'yarn';
   if (existsSync(join(root, 'bun.lockb')) || existsSync(join(root, 'bun.lock'))) return 'bun';
@@ -98,7 +99,7 @@ export const findWorkspaces = (root, pkg) => {
   return [...dirs].sort();
 };
 
-const depsOf = (pkg) => ({
+export const depsOf = (pkg) => ({
   ...pkg?.peerDependencies,
   ...pkg?.optionalDependencies,
   ...pkg?.devDependencies,
@@ -308,5 +309,6 @@ export const detect = (root, catalog) => {
     folders: detectFolders(root, workspaces, pkg),
     claude: detectClaude(root),
     docs: findDocs(root, workspaces),
+    layout: readLayout(root, workspaces),
   };
 };

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { detect } from './detect.mjs';
+import { summarizeLayout } from './layout.mjs';
 import { agentsFor, recommendLevel, warnings } from './plan.mjs';
 import { audit } from './audit.mjs';
 import { findSources, readEnabled, readMarketplaces } from './sources.mjs';
@@ -69,6 +70,7 @@ export const scanSummary = (analysis) => {
     suggestedPlugins,
     claude: detection.claude,
     docs: detection.docs,
+    layout: summarizeLayout(detection.layout),
     audit: installed,
     warnings: warn,
   };

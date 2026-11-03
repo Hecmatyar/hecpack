@@ -51,6 +51,7 @@ test('the existing CLAUDE.md gets one section appended; stack.md has Validation 
   assert.equal(claude.content.match(/## hecpack/g).length, 1);
   assert.match(file(files, '.claude/hecpack/stack.md').content, /## Validation\n\n- typecheck \+ lint \+ test: `npx nx run-many/);
   assert.match(file(files, '.claude/hecpack/project-map.md').content, /## apps\/mobile \(@demo\/mobile\)\n\nThe phone app/);
+  assert.match(file(files, '.claude/hecpack/stack.md').content, /## Layout\n[\s\S]*- Platform suffixes: `\.ios`, `\.android`, `\.native`, `\.web`[\s\S]*`\/hecpack:move`/);
 });
 
 test('the designer comes with a UI stack and the e2e runner with an e2e suite, above lite', () => {

@@ -2,6 +2,7 @@
 // the preview writes these into its own folder, /init into the project.
 
 import { EN, fill } from './i18n.mjs';
+import { describeLayout } from './layout.mjs';
 
 export const LEVELS = ['lite', 'standard', 'deep'];
 
@@ -156,6 +157,7 @@ const stackMd = ({ detection, techs, sources, date, rules = [] }) => {
         : '- No e2e suite found; none needed for a project without UI unless it serves an API worth a contract test.',
     );
   }
+  if (detection.layout) lines.push('', ...describeLayout(detection.layout));
   lines.push(
     '',
     '## Docs',

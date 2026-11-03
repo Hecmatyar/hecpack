@@ -18,7 +18,7 @@ What every main session needs, whatever its task. Injected by the hecpack contex
 - Start from the project map (`.claude/hecpack/project-map.md`): it picks the folder, then the most likely file. A symbol's definition, usages and callers: the LSP tool first (when it shows only as a deferred tool, load it with ToolSearch before the first lookup); text, literals, config keys and files the language server does not see: `rg` or the Grep and Glob tools. Enter dependencies only by the exact package path.
 - Search until you have enough to act, and reuse what earlier commands and files already showed. Read files one at a time, a big one by offset and limit: a tool output over ~20 KB is saved aside and has to be read again, doubling its cost.
 - A library API you are not sure of: the installed version's types and docs first (`node_modules/<pkg>`, or the language's equivalent), then Context7 for that version, then the official docs page of that version, one page at a time (never a whole `llms-full.txt`). Versions in use are often newer than the model's training: check, do not recall.
-- Moving or renaming files: a tool that rewrites the imports (the LSP's rename, the project's move script), then typecheck; not a bare `mv` with imports fixed by hand.
+- Moving or renaming files: `/hecpack:move` (dry run first; it rewrites every import, aliases and package entries included) or the LSP's rename, then the checks it names; not a bare `mv` with imports fixed by hand.
 
 ## Keeping docs current
 
