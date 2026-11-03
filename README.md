@@ -20,6 +20,7 @@ claude plugin install hecpack@hecpack
 | `/hecpack:preview` | Reads the stack and opens a local page: technologies found, the recommended level, where the rules for each technology can come from, the rule documents you already have, the diff of every file each level would write, the plugins worth installing. `--try` writes the files into a throwaway clone. | No |
 | `/hecpack:init` | A guided setup: one round of questions (level, technologies), a pass over the rule documents you already have (what to carry over, what conflicts and why), the plan with diffs, then the files. | Yes, after your confirmation |
 | `/hecpack:metrics` | A snapshot of the project's shape (files, lines, tests, big files, TODOs) and rhythm (commits, lines and files per commit, fix share, reverts), compared with the previous snapshot. Take one right after `/init` and another after a few weeks. | No (snapshots live in the plugin's data folder) |
+| `/hecpack:usage` | A local page with the tokens and money Claude Code spent in the project, per model and per day, built from the transcripts Claude Code already keeps: period filter, models toggled in the legend, cost and tokens per day, cumulative cost, before/after the day hecpack was set up, a per-model table. No collection step and no model call: one script, open instantly. | No (page and cache live in the plugin's data folder) |
 
 ## What you get after `/hecpack:init`
 
@@ -80,6 +81,7 @@ claude plugin install hecpack@hecpack
 - `/hecpack:preview`: ничего не меняет. Страница с тем, что нашлось в проекте, рекомендованным уровнем, источниками правил для каждой технологии, вашими существующими правилами и диффом каждого файла. `--try` пишет файлы в одноразовую копию.
 - `/hecpack:init`: короткий выбор (уровень, технологии), разбор ваших CLAUDE.md, AGENTS.md и прочих правил (что перенести, что конфликтует и в чём плюсы и минусы каждой стороны), план с диффами, и только потом файлы.
 - `/hecpack:metrics`: снимок метрик проекта (размер, тесты, большие файлы, TODO, ритм коммитов, доля фиксов) и сравнение с предыдущим снимком. Первый сразу после `/init`, следующий через несколько недель.
+- `/hecpack:usage`: страница с расходом токенов и денег Claude Code в проекте по моделям и дням, из транскриптов, которые Claude Code и так хранит: фильтр периода, модели в легенде, стоимость и токены по дням, накопленный итог, до и после настройки hecpack, таблица по моделям. Без сбора и без ИИ: один скрипт, открывается сразу.
 
 ## License
 

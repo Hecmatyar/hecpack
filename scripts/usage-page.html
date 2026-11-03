@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hecpack usage</title>
+<style>
+:root {
+  --bg: #f7f6f3; --panel: #fcfcfb; --text: #0b0b0b; --muted: #6b6a66; --line: #e4e2dc; --grid: #ecebe6;
+  --accent: #2a78d6; --chip: #f0efeb; --mark: #9c9a94; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --c0: #2a78d6; --c1: #eb6834; --c2: #1baf7a; --c3: #eda100; --c4: #e87ba4; --c5: #008300; --c6: #6250d6; --c7: #e34948; --c8: #a3a19b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121211; --panel: #1a1a19; --text: #f0efec; --muted: #9c9a94; --line: #33322f; --grid: #262523;
+    --accent: #3987e5; --chip: #2a2a27; --mark: #7d7b75;
+    --c0: #3987e5; --c1: #d95926; --c2: #199e70; --c3: #c98500; --c4: #d55181; --c5: #2e9a3c; --c6: #9085e9; --c7: #e66767; --c8: #6b6a66;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121211; --panel: #1a1a19; --text: #f0efec; --muted: #9c9a94; --line: #33322f; --grid: #262523;
+  --accent: #3987e5; --chip: #2a2a27; --mark: #7d7b75;
+  --c0: #3987e5; --c1: #d95926; --c2: #199e70; --c3: #c98500; --c4: #d55181; --c5: #2e9a3c; --c6: #9085e9; --c7: #e66767; --c8: #6b6a66;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 80px; }
+header { margin-bottom: 20px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; }
+h1 small { color: var(--muted); font-weight: 400; font-size: 15px; margin-left: 8px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 12px; }
+.sub { color: var(--muted); margin-top: 4px; }
+.sub code { font-family: var(--mono); font-size: 13px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-bottom: 16px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); }
+.seg button { border: 0; background: none; color: var(--text); padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: #fff; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.legend .lbl { color: var(--muted); font-size: 13px; margin-right: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; background: var(--chip); border: 1px solid transparent; border-radius: 999px; padding: 3px 11px 3px 8px; font: inherit; font-size: 13px; color: var(--text); cursor: pointer; white-space: nowrap; }
+.chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.chip.off { opacity: 0.45; }
+.chip.off .dot { background: transparent; box-shadow: inset 0 0 0 2px var(--c); }
+.chip.all { background: none; border-color: var(--line); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.tile .v { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.tile .k { color: var(--muted); font-size: 13px; }
+.tile .d { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.charts { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.chart h3 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+.chart .hint { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+.plot { position: relative; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+.axis text { fill: var(--muted); font-size: 11px; font-family: var(--mono); }
+.grid line { stroke: var(--grid); }
+.base { stroke: var(--line); }
+.hit { fill: transparent; }
+.col.hov { fill: var(--text); opacity: 0.06; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); min-width: 160px; z-index: 2; display: none; }
+.tip b { display: block; margin-bottom: 4px; font-weight: 600; }
+.tip .row { display: flex; justify-content: space-between; gap: 14px; font-variant-numeric: tabular-nums; }
+.tip .row .n { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.tip .row .n i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); display: inline-block; }
+.tip .sum { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td, th { text-align: right; vertical-align: top; padding: 9px 8px; border-top: 1px solid var(--line); white-space: nowrap; }
+td:first-child, th:first-child { text-align: left; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; border-top: 0; }
+td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c); margin-right: 8px; vertical-align: 1px; }
+.note { color: var(--muted); font-size: 13px; }
+.warn { background: #fff4d6; color: #7a5600; border-radius: 8px; padding: 10px 12px; margin: 12px 0 0; font-size: 14px; }
+:root[data-theme="dark"] .warn { background: #3a3015; color: #f0d48a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warn { background: #3a3015; color: #f0d48a; } }
+.empty { padding: 40px 0; text-align: center; color: var(--muted); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.two .tile .h { font-weight: 600; margin-bottom: 8px; }
+.two .tile .r { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; padding: 3px 0; }
+.two .tile .r span:first-child { color: var(--muted); }
+@media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1 id="title"></h1>
+  <div class="sub" id="sub"></div>
+</header>
+<div id="app"></div>
+</main>
+<script>
+const REPORT = /*__REPORT__*/null;
+const T = {
+  en: {
+    title: 'Claude Code usage', of: 'of', prices: 'API list prices as of', marker: 'hecpack set up on', noMarker: 'no hecpack setup date (the project has no .claude/hecpack/config.json)',
+    range: 'Period', r7: '7 days', r30: '30 days', r90: '90 days', rall: 'All', rbefore: 'Before hecpack', rafter: 'After hecpack',
+    models: 'Models', all: 'All', other: 'Other',
+    cost: 'Cost', tokens: 'Tokens', output: 'Output tokens', replies: 'Model replies', activeDays: 'Active days', perDay: 'per day', perReply: 'per reply',
+    costChart: 'Cost per day', costHint: 'What the same work would cost on the API, by model.',
+    tokChart: 'Tokens per day', tokHint: 'Input, cache writes, cache reads and output together, by model.',
+    cumChart: 'Cumulative cost', cumHint: 'Running total over the period; the dashed line marks the hecpack setup.',
+    table: 'By model', model: 'Model', input: 'Input', cacheWrite: 'Cache write', cacheRead: 'Cache read', share: 'Share', noPrice: 'no price',
+    compare: 'Before and after hecpack', before: 'Before', after: 'After', days: 'days', outPerReply: 'output per reply', repliesPerDay: 'replies per day',
+    oneSide: 'The comparison appears once there is usage on both sides of the setup date.',
+    unpriced: 'No price in catalog/prices.json for', empty: 'No Claude Code transcripts for this project yet.',
+    emptyRange: 'No usage in this period.', transcripts: 'transcripts', generated: 'generated', yardstick: 'Subscription plans do not bill per token: the money is a yardstick, not an invoice.',
+  },
+  ru: {
+    title: 'Расход Claude Code', of: 'в', prices: 'цены API на', marker: 'hecpack настроен', noMarker: 'дата настройки hecpack неизвестна (в проекте нет .claude/hecpack/config.json)',
+    range: 'Период', r7: '7 дней', r30: '30 дней', r90: '90 дней', rall: 'Всё', rbefore: 'До hecpack', rafter: 'После hecpack',
+    models: 'Модели', all: 'Все', other: 'Прочие',
+    cost: 'Стоимость', tokens: 'Токены', output: 'Токены на выходе', replies: 'Ответов модели', activeDays: 'Дней с работой', perDay: 'в день', perReply: 'на ответ',
+    costChart: 'Стоимость по дням', costHint: 'Сколько та же работа стоила бы по ценам API, по моделям.',
+    tokChart: 'Токены по дням', tokHint: 'Вход, запись кэша, чтение кэша и выход вместе, по моделям.',
+    cumChart: 'Накопленная стоимость', cumHint: 'Нарастающий итог за период; пунктир — день настройки hecpack.',
+    table: 'По моделям', model: 'Модель', input: 'Вход', cacheWrite: 'Запись кэша', cacheRead: 'Чтение кэша', share: 'Доля', noPrice: 'цены нет',
+    compare: 'До и после hecpack', before: 'До', after: 'После', days: 'дн.', outPerReply: 'выход на ответ', repliesPerDay: 'ответов в день',
+    oneSide: 'Сравнение появится, когда будет расход по обе стороны от даты настройки.',
+    unpriced: 'Нет цены в catalog/prices.json для', empty: 'Транскриптов Claude Code для этого проекта пока нет.',
+    emptyRange: 'За этот период расхода нет.', transcripts: 'транскриптов', generated: 'собрано', yardstick: 'Подписка не тарифицируется по токенам: деньги здесь — мерка, а не счёт.',
+  },
+};
+const t = T[REPORT.lang] || T.en;
+const locale = REPORT.lang === 'ru' ? 'ru-RU' : 'en-US';
+document.documentElement.lang = REPORT.lang;
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const money = (v) => `$${(v ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const moneyShort = (v) => (v >= 100 ? `$${Math.round(v)}` : v >= 10 ? `$${v.toFixed(1)}` : `$${v.toFixed(2)}`);
+const k = (v) => (v >= 1e9 ? `${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : String(Math.round(v)));
+const num = (v) => Math.round(v).toLocaleString(locale);
+const dayMs = 86400000;
+const addDays = (day, n) => new Date(Date.parse(day) + n * dayMs).toISOString().slice(0, 10);
+const fmtDay = (day) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(day));
+const fmtDayLong = (day) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(day));
+
+// Series: the models in the order of total cost, colours assigned once; models beyond eight fold into Other.
+const MAX = 8;
+const base = REPORT.models.map((m, i) => ({ id: m.model, label: m.label, color: `var(--c${Math.min(i, MAX)})`, folded: i >= MAX }));
+const series = base.filter((s) => !s.folded);
+if (base.some((s) => s.folded)) series.push({ id: '__other', label: t.other, color: `var(--c${MAX})`, members: base.filter((s) => s.folded).map((s) => s.id) });
+const seriesOf = (model) => series.find((s) => s.id === model) ?? series.find((s) => s.members?.includes(model));
+
+const state = { range: 'all', on: new Set(series.map((s) => s.id)) };
+const today = REPORT.generatedAt.slice(0, 10);
+const first = REPORT.total?.from;
+
+const rangeBounds = () => {
+  if (!first) return [today, today];
+  if (state.range === 'all') return [first, today];
+  if (state.range === 'before') return [first, addDays(REPORT.marker, -1)];
+  if (state.range === 'after') return [REPORT.marker, today];
+  return [addDays(today, -(Number(state.range) - 1)), today];
+};
+
+// Day rows of the period, every calendar day, each with the on series summed.
+const periodRows = () => {
+  const [from, to] = rangeBounds();
+  const byDay = Object.fromEntries(REPORT.days.map((d) => [d.day, d]));
+  const rows = [];
+  for (let day = from; day <= to; day = addDays(day, 1)) {
+    const src = byDay[day];
+    const per = {};
+    for (const s of series) if (state.on.has(s.id)) per[s.id] = { cost: 0, tokens: 0, output: 0, messages: 0 };
+    if (src) {
+      for (const [model, u] of Object.entries(src.models)) {
+        const s = seriesOf(model);
+        if (!s || !state.on.has(s.id)) continue;
+        per[s.id].cost += u.cost ?? 0;
+        per[s.id].tokens += u.tokens;
+        per[s.id].output += u.output;
+        per[s.id].messages += u.messages;
+      }
+    }
+    const sum = (key) => Object.values(per).reduce((a, v) => a + v[key], 0);
+    rows.push({ day, per, cost: sum('cost'), tokens: sum('tokens'), output: sum('output'), messages: sum('messages') });
+  }
+  return rows;
+};
+
+const nice = (max) => {
+  if (max <= 0) return 1;
+  const p = 10 ** Math.floor(Math.log10(max));
+  const m = max / p;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+};
+
+let W = 1000;
+const H = 260, PL = 56, PR = 12, PT = 12, PB = 28;
+const scaleX = (rows) => (i) => PL + ((W - PL - PR) * i) / Math.max(1, rows.length);
+const bandW = (rows) => (W - PL - PR) / Math.max(1, rows.length);
+
+const axes = (rows, top, fmt) => {
+  const ih = H - PT - PB;
+  const y = (v) => PT + ih - (ih * v) / top;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * top);
+  const n = rows.length;
+  const step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - PL - PR) / 72))));
+  let out = '<g class="grid">';
+  for (const v of ticks) out += `<line x1="${PL}" x2="${W - PR}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"></line>`;
+  out += '</g><g class="axis">';
+  for (const v of ticks) out += `<text x="${PL - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${esc(fmt(v))}</text>`;
+  const x = scaleX(rows);
+  const bw = bandW(rows);
+  for (let i = 0; i < n; i += step) out += `<text x="${(x(i) + bw / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(fmtDay(rows[i].day))}</text>`;
+  out += `</g><line class="base" x1="${PL}" x2="${W - PR}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"></line>`;
+  return { out, y };
+};
+
+const markerLine = (rows, label) => {
+  if (!REPORT.marker) return '';
+  const i = rows.findIndex((r) => r.day === REPORT.marker);
+  if (i < 0) return '';
+  const xm = scaleX(rows)(i);
+  return `<line x1="${xm.toFixed(1)}" x2="${xm.toFixed(1)}" y1="${PT}" y2="${H - PB}" stroke="var(--mark)" stroke-dasharray="4 4"></line><text class="axis" x="${(xm + 5).toFixed(1)}" y="${PT + 10}" fill="var(--muted)" font-size="11" font-family="var(--mono)">${esc(label)}</text>`;
+};
+
+const stacked = (rows, key, fmt) => {
+  const top = nice(Math.max(...rows.map((r) => r[key]), 0) * 1.05);
+  const { out, y } = axes(rows, top, fmt);
+  const x = scaleX(rows);
+  const bw = bandW(rows);
+  const gap = bw > 6 ? 2 : bw > 3 ? 1 : 0;
+  let bars = '';
+  rows.forEach((r, i) => {
+    let acc = 0;
+    for (const s of series) {
+      const v = r.per[s.id]?.[key] ?? 0;
+      if (!v) continue;
+      const y1 = y(acc + v), y0 = y(acc);
+      const h = Math.max(0, y0 - y1 - (acc ? 2 : 0));
+      if (h > 0) bars += `<rect x="${(x(i) + gap / 2).toFixed(1)}" y="${y1.toFixed(1)}" width="${Math.max(0.5, bw - gap).toFixed(1)}" height="${h.toFixed(1)}" fill="${s.color}"></rect>`;
+      acc += v;
+    }
+  });
+  const hits = rows.map((r, i) => `<rect class="col" data-i="${i}" x="${x(i).toFixed(1)}" y="${PT}" width="${bw.toFixed(1)}" height="${H - PT - PB}" fill="transparent"></rect>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}">${out}${bars}${markerLine(rows, 'hecpack')}${hits}</svg>`;
+};
+
+const cumulative = (rows) => {
+  let acc = 0;
+  const pts = rows.map((r) => (acc += r.cost));
+  const top = nice(Math.max(acc, 0) * 1.05);
+  const { out, y } = axes(rows, top, moneyShort);
+  const x = scaleX(rows);
+  const bw = bandW(rows);
+  const d = pts.map((v, i) => `${i ? 'L' : 'M'}${(x(i) + bw / 2).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const hits = rows.map((r, i) => `<rect class="col" data-i="${i}" data-cum="${pts[i]}" x="${x(i).toFixed(1)}" y="${PT}" width="${bw.toFixed(1)}" height="${H - PT - PB}" fill="transparent"></rect>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}">${out}<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"></path>${markerLine(rows, 'hecpack')}${hits}</svg>`;
+};
+
+const tiles = (rows) => {
+  const sum = (key) => rows.reduce((a, r) => a + r[key], 0);
+  const active = rows.filter((r) => r.messages).length;
+  const span = Math.max(1, rows.length);
+  const tile = (v, label, d) => `<div class="tile"><div class="v">${v}</div><div class="k">${esc(label)}</div>${d ? `<div class="d">${d}</div>` : ''}</div>`;
+  return `<div class="tiles">
+    ${tile(money(sum('cost')), t.cost, `${money(sum('cost') / span)} ${t.perDay}`)}
+    ${tile(k(sum('tokens')), t.tokens, `${k(sum('tokens') / span)} ${t.perDay}`)}
+    ${tile(k(sum('output')), t.output, `${num(sum('output') / Math.max(1, sum('messages')))} ${t.perReply}`)}
+    ${tile(num(sum('messages')), t.replies, `${active} ${t.activeDays.toLowerCase()} / ${span} ${t.days}`)}
+  </div>`;
+};
+
+const comparison = () => {
+  if (!REPORT.marker) return '';
+  const { before: b, after: a } = REPORT;
+  const body = b && a
+    ? `<div class="two">${[[t.before, b], [t.after, a]].map(([h, p]) => `<div class="tile"><div class="h">${esc(h)} <span class="note">${esc(fmtDay(p.from))} – ${esc(fmtDay(p.to))}, ${p.days} ${esc(t.days)}</span></div>
+        <div class="r"><span>${esc(t.cost)} ${esc(t.perDay)}</span><span>${money(p.costPerDay)}</span></div>
+        <div class="r"><span>${esc(t.tokens)} ${esc(t.perDay)}</span><span>${k(p.tokensPerDay)}</span></div>
+        <div class="r"><span>${esc(t.repliesPerDay)}</span><span>${(p.messages / p.days).toFixed(1)}</span></div>
+        <div class="r"><span>${esc(t.outPerReply)}</span><span>${num(p.outputPerMessage)}</span></div>
+        <div class="r"><span>${esc(t.cost)}</span><span>${money(p.cost)}</span></div></div>`).join('')}</div>`
+    : `<p class="note">${esc(t.oneSide)}</p>`;
+  return `<section><h2>${esc(t.compare)}</h2>${body}</section>`;
+};
+
+const modelTable = (rows) => {
+  const totals = {};
+  for (const r of rows) for (const [id, u] of Object.entries(r.per)) {
+    totals[id] ??= { cost: 0, tokens: 0, output: 0, messages: 0 };
+    for (const key of Object.keys(totals[id])) totals[id][key] += u[key];
+  }
+  const byDay = Object.fromEntries(REPORT.days.map((d) => [d.day, d]));
+  const detail = {};
+  for (const r of rows) {
+    const src = byDay[r.day];
+    if (!src) continue;
+    for (const [model, u] of Object.entries(src.models)) {
+      const s = seriesOf(model);
+      if (!s || !state.on.has(s.id)) continue;
+      detail[s.id] ??= { input: 0, cacheWrite: 0, cacheRead: 0 };
+      detail[s.id].input += u.input; detail[s.id].cacheWrite += u.cacheWrite; detail[s.id].cacheRead += u.cacheRead;
+    }
+  }
+  const all = Object.values(totals).reduce((a, v) => a + v.cost, 0);
+  const priced = (id) => id === '__other' || REPORT.models.find((m) => m.model === id)?.priced;
+  const trs = series.filter((s) => state.on.has(s.id) && totals[s.id]?.messages).map((s) => {
+    const v = totals[s.id], d = detail[s.id] ?? { input: 0, cacheWrite: 0, cacheRead: 0 };
+    return `<tr><td><span class="dot" style="--c:${s.color}"></span>${esc(s.label)}</td><td>${num(v.messages)}</td><td>${k(d.input)}</td><td>${k(d.cacheWrite)}</td><td>${k(d.cacheRead)}</td><td>${k(v.output)}</td><td>${k(v.tokens)}</td><td>${priced(s.id) ? money(v.cost) : `<span class="note">${esc(t.noPrice)}</span>`}</td><td>${all ? `${Math.round((100 * v.cost) / all)}%` : '—'}</td></tr>`;
+  }).join('');
+  return `<table><thead><tr><th>${esc(t.model)}</th><th>${esc(t.replies)}</th><th>${esc(t.input)}</th><th>${esc(t.cacheWrite)}</th><th>${esc(t.cacheRead)}</th><th>${esc(t.output)}</th><th>${esc(t.tokens)}</th><th>${esc(t.cost)}</th><th>${esc(t.share)}</th></tr></thead><tbody>${trs}</tbody></table>`;
+};
+
+const filters = () => {
+  const ranges = [['7', t.r7], ['30', t.r30], ['90', t.r90], ['all', t.rall]];
+  if (REPORT.marker) ranges.push(['before', t.rbefore], ['after', t.rafter]);
+  return `<div class="filters">
+    <div class="seg" id="ranges">${ranges.map(([id, label]) => `<button data-range="${id}" class="${state.range === id ? 'on' : ''}">${esc(label)}</button>`).join('')}</div>
+    <div class="legend" id="legend"><span class="lbl">${esc(t.models)}</span>
+      <button class="chip all" data-all="1">${esc(t.all)}</button>
+      ${series.map((s) => `<button class="chip ${state.on.has(s.id) ? '' : 'off'}" data-series="${esc(s.id)}" style="--c:${s.color}"><span class="dot"></span>${esc(s.label)}</button>`).join('')}
+    </div></div>`;
+};
+
+const chart = (id, title, hint, svg) => `<div class="chart"><h3>${esc(title)}</h3><p class="hint">${esc(hint)}</p><div class="plot" id="${id}">${svg}<div class="tip"></div></div></div>`;
+
+const render = () => {
+  W = Math.max(320, document.querySelector('main').clientWidth - 42);
+  document.getElementById('title').innerHTML = `${esc(t.title)} <small>${esc(t.of)} ${esc(REPORT.root.split('/').pop())}</small>`;
+  document.getElementById('sub').innerHTML = `<code>${esc(REPORT.root)}</code> · ${REPORT.transcripts} ${esc(t.transcripts)} · ${esc(t.prices)} ${esc(REPORT.pricesAsOf)} · ${REPORT.marker ? `${esc(t.marker)} ${esc(fmtDayLong(REPORT.marker))}` : esc(t.noMarker)} · ${esc(t.generated)} ${esc(REPORT.generatedAt.replace('T', ' '))}`;
+  const app = document.getElementById('app');
+  if (!REPORT.total) {
+    app.innerHTML = `<section><div class="empty">${esc(t.empty)}</div></section>`;
+    return;
+  }
+  const rows = periodRows();
+  const any = rows.some((r) => r.messages);
+  app.innerHTML = `
+    <section>${filters()}${any ? tiles(rows) : `<div class="empty">${esc(t.emptyRange)}</div>`}</section>
+    ${any ? `<section><div class="charts">
+      ${chart('c-cost', t.costChart, t.costHint, stacked(rows, 'cost', moneyShort))}
+      ${chart('c-tok', t.tokChart, t.tokHint, stacked(rows, 'tokens', k))}
+      ${chart('c-cum', t.cumChart, t.cumHint, cumulative(rows))}
+    </div></section>` : ''}
+    ${comparison()}
+    ${any ? `<section><h2>${esc(t.table)}</h2>${modelTable(rows)}<p class="note" style="margin:12px 0 0">${esc(t.yardstick)}</p>${REPORT.unpriced.length ? `<div class="warn">${esc(t.unpriced)} ${REPORT.unpriced.map(esc).join(', ')}</div>` : ''}</section>` : ''}`;
+
+  for (const b of app.querySelectorAll('#ranges button')) b.onclick = () => { state.range = b.dataset.range; render(); };
+  for (const b of app.querySelectorAll('#legend .chip')) b.onclick = () => {
+    if (b.dataset.all) state.on = new Set(series.map((s) => s.id));
+    else if (state.on.has(b.dataset.series) && state.on.size > 1) state.on.delete(b.dataset.series);
+    else state.on.add(b.dataset.series);
+    render();
+  };
+  for (const plot of app.querySelectorAll('.plot')) hover(plot, rows);
+};
+
+const hover = (plot, rows) => {
+  const tip = plot.querySelector('.tip');
+  const key = plot.id === 'c-tok' ? 'tokens' : 'cost';
+  const fmt = key === 'tokens' ? k : money;
+  let last;
+  plot.addEventListener('mousemove', (e) => {
+    const col = e.target.closest('.col');
+    if (!col) return;
+    if (last && last !== col) last.classList.remove('hov');
+    col.classList.add('hov');
+    last = col;
+    const r = rows[Number(col.dataset.i)];
+    const lines = series.filter((s) => r.per[s.id]?.[key]).map((s) => `<div class="row"><span class="n" style="--c:${s.color}"><i></i>${esc(s.label)}</span><span>${fmt(r.per[s.id][key])}</span></div>`).join('');
+    const total = col.dataset.cum !== undefined ? `<div class="row sum"><span class="n">${esc(t.cumChart)}</span><span>${money(Number(col.dataset.cum))}</span></div>` : `<div class="row sum"><span class="n">${esc(t.replies)}</span><span>${r.messages}</span></div>`;
+    tip.innerHTML = `<b>${esc(fmtDayLong(r.day))}</b>${lines || `<div class="note">${esc(t.emptyRange)}</div>`}${total}`;
+    tip.style.display = 'block';
+    const box = plot.getBoundingClientRect();
+    const left = e.clientX - box.left + 14;
+    tip.style.left = `${Math.min(left, box.width - tip.offsetWidth - 4)}px`;
+    tip.style.top = `${Math.max(0, e.clientY - box.top - tip.offsetHeight - 10)}px`;
+  });
+  plot.addEventListener('mouseleave', () => { tip.style.display = 'none'; if (last) last.classList.remove('hov'); });
+};
+
+render();
+let resizeTimer;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); });
+</script>
+</body>
+</html>
