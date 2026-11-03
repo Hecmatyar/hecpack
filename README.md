@@ -18,7 +18,7 @@ claude plugin install hecpack@hecpack
 | Command | What it does | Touches the project |
 | --- | --- | --- |
 | `/hecpack:preview` | Reads the stack and opens a local page: technologies found, the recommended level, where the rules for each technology can come from, the rule documents you already have, the diff of every file each level would write, the plugins worth installing. `--try` writes the files into a throwaway clone. | No |
-| `/hecpack:init` | A guided setup: one round of questions (level, technologies, optional modules), a pass over the rule documents you already have (what to carry over, what conflicts and why), the plan with diffs, then the files. | Yes, after your confirmation |
+| `/hecpack:init` | A guided setup: one round of questions (level, technologies), a pass over the rule documents you already have (what to carry over, what conflicts and why), the plan with diffs, then the files. | Yes, after your confirmation |
 | `/hecpack:metrics` | A snapshot of the project's shape (files, lines, tests, big files, TODOs) and rhythm (commits, lines and files per commit, fix share, reverts), compared with the previous snapshot. Take one right after `/init` and another after a few weeks. | No (snapshots live in the plugin's data folder) |
 
 ## What you get after `/hecpack:init`
@@ -40,10 +40,6 @@ claude plugin install hecpack@hecpack
 
 `/init` recommends one from the stack: deep for a monorepo with several workspaces, standard for a project with a real stack and tests, lite otherwise. You can always change `level` in `config.json`.
 
-### Optional modules
-
-- `git-safety`: denies destructive git commands (stash, reset, checkout, clean, restore, rebase, commit, push, pull) in `.claude/settings.json`, so the agent proposes and you run them. Uncommitted changes stay as they are.
-
 ### Your existing rules
 
 `/init` and `/preview` find the rule documents already in the project: `CLAUDE.md`, `AGENTS.md`, Cursor and Copilot rules, `.claude/rules`, `.claude/docs`, contributor docs. `/init` reads them and sorts every rule: already covered by hecpack (nothing to do), worth carrying over (kept where it is and loaded with the core, or moved into a short `.claude/hecpack/rules/<topic>.md`), or in conflict with hecpack. Each conflict comes to you as a question with both rules and the trade-off; nothing is replaced without your answer, and nothing of yours is deleted.
@@ -51,6 +47,8 @@ claude plugin install hecpack@hecpack
 ## Coexisting with your own setup
 
 If your project already injects its own rules or has agents called `architect`, `thinker` or `checker`, the preview and the init say so: hecpack's agents are namespaced (`hecpack:architect`), but two context hooks would load overlapping rules, so keep one source per rule.
+
+hecpack sets no permissions and no git policy: what the agent may run, commit or push comes from your own `settings.json` and environment, and `/init` never touches `.claude/settings.json`.
 
 ## Development
 
@@ -78,7 +76,7 @@ claude plugin install hecpack@hecpack
 Три команды в сессии Claude Code внутри проекта:
 
 - `/hecpack:preview`: ничего не меняет. Страница с тем, что нашлось в проекте, рекомендованным уровнем, источниками правил для каждой технологии, вашими существующими правилами и диффом каждого файла. `--try` пишет файлы в одноразовую копию.
-- `/hecpack:init`: короткий выбор (уровень, технологии, модули), разбор ваших CLAUDE.md, AGENTS.md и прочих правил (что перенести, что конфликтует и в чём плюсы и минусы каждой стороны), план с диффами, и только потом файлы.
+- `/hecpack:init`: короткий выбор (уровень, технологии), разбор ваших CLAUDE.md, AGENTS.md и прочих правил (что перенести, что конфликтует и в чём плюсы и минусы каждой стороны), план с диффами, и только потом файлы.
 - `/hecpack:metrics`: снимок метрик проекта (размер, тесты, большие файлы, TODO, ритм коммитов, доля фиксов) и сравнение с предыдущим снимком. Первый сразу после `/init`, следующий через несколько недель.
 
 ## License

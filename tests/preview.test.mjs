@@ -36,8 +36,8 @@ test('preview never touches the project and writes the page, report and diffs', 
   const claude = report.levels.standard.files.find((file) => file.path === '.claude/CLAUDE.md');
   assert.match(claude.diff, /^\+## hecpack$/m);
   assert.equal(claude.removed, 0);
-  assert.equal(report.levels.lite.files.filter((file) => !file.module).length, 4);
-  assert.equal(report.levels.lite.files.find((file) => file.module)?.path, '.claude/settings.json');
+  assert.equal(report.levels.lite.files.length, 4);
+  assert.ok(report.levels.lite.files.every((file) => file.path !== '.claude/settings.json'), 'hecpack never plans settings');
   assert.ok(report.docs.some((doc) => doc.path === '.claude/CLAUDE.md'));
   assert.equal(report.recommended.level, 'deep');
   assert.ok(existsSync(join(report.paths.out, 'deep/files/.claude/hecpack/context-map.json')));

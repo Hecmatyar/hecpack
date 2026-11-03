@@ -1,7 +1,7 @@
 ---
 name: init
 description: Set hecpack up in this project through a short guided choice. Scans the stack, proposes a level and the plugins that fit, reads the rule documents the project already has and says what to carry over and what conflicts, then writes .claude/hecpack/ and one section in CLAUDE.md. Use when the user runs /hecpack:init or asks to set hecpack up here.
-argument-hint: "[--level lite|standard|deep] [--techs id,id] [--modules git-safety] [--yes]"
+argument-hint: "[--level lite|standard|deep] [--techs id,id] [--yes]"
 disable-model-invocation: true
 allowed-tools: Bash(node:*), Read, Glob, Grep, AskUserQuestion, Edit, Write
 ---
@@ -10,7 +10,7 @@ allowed-tools: Bash(node:*), Read, Glob, Grep, AskUserQuestion, Edit, Write
 
 A guided setup in five short steps. The user picks; you do not decide for them, and you do not go deeper than they ask. Keep every message short: the choices, one line of reason each, your recommendation marked. Reply in the user's language; the files you write stay in English.
 
-Nothing is written before step 4, and the only files written are the ones the plan lists. Never run `/init`, never install a plugin yourself (give the command), never delete or rewrite a project file: `CLAUDE.md` gets one section, `.claude/settings.json` gets deny rules added, the rest is new under `.claude/hecpack/`.
+Nothing is written before step 4, and the only files written are the ones the plan lists. Never run `/init`, never install a plugin yourself (give the command), never touch `.claude/settings.json`, never delete or rewrite a project file: `CLAUDE.md` gets one section, the rest is new under `.claude/hecpack/`.
 
 ## 1. Scan
 
@@ -22,11 +22,10 @@ Read the JSON. If `claude.hecpack` is true, say that hecpack is already set up h
 
 ## 2. Ask: level and techs
 
-One `AskUserQuestion` with these questions (skip a question the arguments already answer; `--yes` takes every recommendation without asking):
+One `AskUserQuestion` with these questions (skip a question the arguments already answer; `--yes` takes every recommendation without asking). hecpack sets no permissions and no git policy: those stay with the user's own environment and settings.
 
 - **Level**: the three levels with one line each (`lite`: session rules, triage, stack and checks, the checker agent; `standard`: plus the architect loop and the thinker and the project map; `deep`: plus the chain of chats, sub-sessions with a coordinator and model limits per agent), the `recommended.level` marked with its `reason`.
 - **Technologies**: multi-select of `techs`, all preselected; each with its version and where its rules would come from (`sources`). The user unticks what hecpack should ignore.
-- **Optional modules**, only when relevant: `git-safety` (deny destructive git commands in `.claude/settings.json`; the user runs them) when the project is a git repository.
 
 ## 3. Go through the rules the project already has
 
@@ -43,10 +42,10 @@ No documents found: say so in one line and go on.
 ## 4. Plan, confirm, write
 
 ```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" --project "${CLAUDE_PROJECT_DIR}" --level <level> --techs <ids> --rules <paths> --modules <ids> --lang <ru|en>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" --project "${CLAUDE_PROJECT_DIR}" --level <level> --techs <ids> --rules <paths> --lang <ru|en>
 ```
 
-(`--lang` is the language the user writes in; drop an empty `--techs`, `--rules` or `--modules`.) Show the file list with its actions and the diff of every `update` (CLAUDE.md, settings.json, an existing generated file). Files marked `kept` were edited since generation: tell the user and offer `--force` only if they want them regenerated. One confirmation (AskUserQuestion, or implied by `--yes`), then the same command with `--write`. Write the rule files from step 3 first, so `--rules` finds them.
+(`--lang` is the language the user writes in; drop an empty `--techs` or `--rules`.) Show the file list with its actions and the diff of every `update` (CLAUDE.md, an existing generated file). Files marked `kept` were edited since generation: tell the user and offer `--force` only if they want them regenerated. One confirmation (AskUserQuestion, or implied by `--yes`), then the same command with `--write`. Write the rule files from step 3 first, so `--rules` finds them.
 
 ## 5. Fill the project map and finish
 

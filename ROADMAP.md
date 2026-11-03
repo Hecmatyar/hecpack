@@ -9,11 +9,10 @@
 
 ### v0.2
 
-- `/hecpack:init`: a guided setup in one short round of questions (level with a recommendation from the stack, technologies, optional modules), the plan with diffs before anything is written, edited generated files kept on a second run.
+- `/hecpack:init`: a guided setup in one short round of questions (level with a recommendation from the stack, technologies), the plan with diffs before anything is written, edited generated files kept on a second run.
 - Rule documents the project already has (CLAUDE.md, AGENTS.md, Cursor and Copilot rules, `.claude/rules`, `.claude/docs`, contributor docs) are found and tagged by topic; `/init` reads them, carries over what hecpack lacks (loaded with the core through `--rules`), and puts each conflict to the user with the trade-off.
 - `/hecpack:metrics`: snapshots of code shape and commit rhythm, stored in the plugin's data folder, with the before/after table.
-- Optional module `git-safety` (deny destructive git commands in `.claude/settings.json`).
-- The preview page shows the recommended level, the rule documents found, the optional modules and the exact `/hecpack:init` command for the selection.
+- The preview page shows the recommended level, the rule documents found and the exact `/hecpack:init` command for the selection. Optional modules are wired through (`--modules`, the page) but none ships yet: hecpack sets no permissions and no git policy, those come from the user's environment.
 
 ## Next
 

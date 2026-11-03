@@ -17,7 +17,7 @@ hecpack is a Claude Code plugin: a generic development workflow (core) plus a pr
 ## Rules
 
 - No dependencies: Node 20+ built-ins only, ES modules (`.mjs`).
-- `/preview` and `/metrics` never write into the user's project; everything goes to `${CLAUDE_PLUGIN_DATA}`. `/init` writes only after the user's confirmation, merges into CLAUDE.md and settings.json, and keeps an edited generated file unless `--force`. Tests check each of these; keep them.
+- `/preview` and `/metrics` never write into the user's project; everything goes to `${CLAUDE_PLUGIN_DATA}`. `/init` writes only after the user's confirmation, merges one section into CLAUDE.md, never touches `.claude/settings.json` or any permission or git policy (those are the user's), and keeps an edited generated file unless `--force`. Tests check each of these; keep them.
 - The guided choice happens in the skill (AskUserQuestion), not in the scripts: a script prints JSON or a plan, the skill asks and retells. Keep the questions few and the options one line each.
 - A new technology: a row in `catalog/technologies.json` (detect, covers, search words) and a fixture or test case when detection is not a plain dependency.
 - Changing a core heading that `scripts/lib/plan.mjs` references (`#Triage`, `#Chain of chats`) breaks the context map: `tests/plan.test.mjs` checks every `hecpack:` path and heading.

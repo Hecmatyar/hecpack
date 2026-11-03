@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { init, parseArgs } from '../scripts/init.mjs';
 import { scan } from '../scripts/scan.mjs';
-import { gitSafetySettings, recommendLevel } from '../scripts/lib/plan.mjs';
+import { recommendLevel } from '../scripts/lib/plan.mjs';
 import { detect } from '../scripts/lib/detect.mjs';
 import { catalog, claudeHome, FIXTURES, scratch } from './helpers.mjs';
 
@@ -15,11 +15,11 @@ const copy = (fixture) => {
 };
 
 test('arguments', () => {
-  const args = parseArgs(['--level', 'lite', '--techs', 'react, vite', '--rules=docs/a.md', '--modules', 'git-safety', '--write']);
+  const args = parseArgs(['--level', 'lite', '--techs', 'react, vite', '--rules=docs/a.md', '--modules', 'format-hooks', '--write']);
   assert.equal(args.level, 'lite');
   assert.deepEqual(args.techs, ['react', 'vite']);
   assert.deepEqual(args.rules, ['docs/a.md']);
-  assert.deepEqual(args.modules, ['git-safety']);
+  assert.deepEqual(args.modules, ['format-hooks']);
   assert.equal(args.write, true);
   assert.throws(() => parseArgs(['--level', 'huge']));
 });
@@ -40,11 +40,10 @@ test('without --write nothing changes and every file has its diff', () => {
 
 test('--write creates the files; a second run keeps an edited generated file and leaves the rest alone', () => {
   const project = copy('ts-vite');
-  const args = { project, claudeHome: claudeHome(), level: 'lite', rules: [], modules: ['git-safety'], write: true, date: '2026-11-03' };
+  const args = { project, claudeHome: claudeHome(), level: 'lite', rules: [], modules: [], write: true, date: '2026-11-03' };
   const first = init(args);
-  assert.deepEqual(first.files.map((file) => file.result), ['written', 'written', 'written', 'written', 'written']);
-  const settings = JSON.parse(readFileSync(join(project, '.claude/settings.json'), 'utf8'));
-  assert.ok(settings.permissions.deny.includes('Bash(git push *)'));
+  assert.deepEqual(first.files.map((file) => file.result), ['written', 'written', 'written', 'written']);
+  assert.ok(!existsSync(join(project, '.claude/settings.json')), 'hecpack never writes settings');
   assert.match(readFileSync(join(project, 'CLAUDE.md'), 'utf8'), /^## hecpack$/m);
 
   writeFileSync(join(project, '.claude/hecpack/stack.md'), '# Stack\n\nedited by hand\n');
@@ -70,14 +69,6 @@ test('project rule files go into the context map and the config; a missing one i
   assert.equal(result.files.length, 5);
   assert.throws(() => init({ project, claudeHome: claudeHome(), rules: ['docs/none.md'], modules: [] }), /rule file not found/);
   assert.throws(() => init({ project, claudeHome: claudeHome(), rules: [], modules: ['format'] }), /unknown module/);
-});
-
-test('git safety merges into existing settings without touching the rest', () => {
-  const settings = gitSafetySettings(JSON.stringify({ permissions: { allow: ['Bash(npm test)'], deny: ['Bash(git push)'] }, hooks: {} }));
-  assert.deepEqual(settings.permissions.allow, ['Bash(npm test)']);
-  assert.equal(settings.permissions.deny.filter((rule) => rule === 'Bash(git push)').length, 1);
-  assert.ok(settings.permissions.deny.includes('Bash(git -C * rebase *)'));
-  assert.deepEqual(settings.hooks, {});
 });
 
 test('scan lists the rule documents with their topics and the recommendation', () => {

@@ -206,10 +206,10 @@ const render = () => {
           <pre>${diffHtml(file.diff)}</pre>
         </details>`).join('')}
     </section>
-    <section>
+    ${Object.keys(REPORT.modules ?? {}).length ? `<section>
       <h2>${t.modules}</h2>
-      <div class="chips">${Object.entries(REPORT.modules ?? {}).map(([id, m]) => `<label class="chip" title="${esc(m.description)}"><input type="checkbox" data-module="${esc(id)}" ${state.modules.has(id) ? 'checked' : ''}>${esc(m.label)}</label>`).join('')}</div>
-    </section>
+      <div class="chips">${Object.entries(REPORT.modules).map(([id, m]) => `<label class="chip" title="${esc(m.description)}"><input type="checkbox" data-module="${esc(id)}" ${state.modules.has(id) ? 'checked' : ''}>${esc(m.label)}</label>`).join('')}</div>
+    </section>` : ''}
     <section>
       <h2>${t.commands}</h2>
       <div class="label">${REPORT.lang === 'ru' ? 'Настроить проект с этим выбором' : 'Set the project up with this selection'}</div>${cmd(c.init)}

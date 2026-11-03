@@ -3,12 +3,12 @@
 // action and diff), so the skill can show it and ask; with --write it writes the files.
 //
 //   node init.mjs --project <dir> --level lite|standard|deep [--techs id,id] [--rules path,path]
-//                 [--modules git-safety] [--lang en|ru] [--write] [--force] [--json]
+//                 [--modules id,id] [--lang en|ru] [--write] [--force] [--json]
 //
 // Writing rules: a new file is created; CLAUDE.md gets its hecpack section added or replaced and nothing
-// else in it changes; .claude/settings.json gets the deny rules added and nothing else changes; a generated
-// file (.claude/hecpack/*) that exists with other content is kept unless --force, so a second run never
-// loses what the user edited there.
+// else in it changes; a generated file (.claude/hecpack/*) that exists with other content is kept unless
+// --force, so a second run never loses what the user edited there. Settings and permissions are never
+// written: they come from the user's own environment.
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -45,7 +45,7 @@ const diffText = (path, before, after) => {
   return result.status > 1 ? '' : result.stdout;
 };
 
-// Generated files keep the user's edits; CLAUDE.md and settings.json are merges, so they are always safe.
+// Generated files keep the user's edits; CLAUDE.md is a merge of one section, so it is always safe.
 const GENERATED = /^\.claude\/hecpack\//;
 
 export const init = (args) => {

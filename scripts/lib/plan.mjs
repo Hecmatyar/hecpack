@@ -73,24 +73,10 @@ export const recommendLevel = (detection) => {
   return { level: 'lite', reason: 'a small project: rules, triage and checks are enough to start' };
 };
 
-// Optional modules on top of a level, each one file the user may or may not want.
-export const MODULES = {
-  'git-safety': {
-    label: 'Git safety',
-    description: 'Denies destructive git commands (stash, reset, checkout, clean, restore, rebase, commit, push, pull) in .claude/settings.json; the user runs them. The Wayfarer way: uncommitted changes are intentional and stay as they are.',
-  },
-};
-
-const DESTRUCTIVE_GIT = ['stash', 'reset', 'checkout', 'clean', 'restore', 'rebase', 'commit', 'push', 'pull'];
-
-// The project's settings.json with the deny rules added; everything else in it is kept as it is.
-export const gitSafetySettings = (text) => {
-  const settings = text ? JSON.parse(text) : {};
-  const rules = DESTRUCTIVE_GIT.flatMap((verb) => [`Bash(git ${verb})`, `Bash(git ${verb} *)`, `Bash(git -C * ${verb} *)`]);
-  const deny = settings.permissions?.deny ?? [];
-  settings.permissions = { ...settings.permissions, deny: [...deny, ...rules.filter((rule) => !deny.includes(rule))] };
-  return settings;
-};
+// Optional modules on top of a level, each one file the user may or may not want. None yet: hecpack never
+// touches permissions or git policy, those come from the user's own environment (see ROADMAP for the planned
+// format-hooks module).
+export const MODULES = {};
 
 const SOURCE_LINE = {
   pack: (source) => `hecpack pack ${source.id} (${source.status})`,
@@ -209,9 +195,6 @@ export const plan = ({ detection, sources, level, language = 'en', techIds, rule
     ...(level === 'lite' ? [] : [{ path: `${HOME}/project-map.md`, content: projectMapMd({ detection, date }), note: 'folder index to fill in' }]),
     { path: claudeMd, content: withSection(readProject(claudeMd) ?? '', claudeSection(level)), note: 'one short section pointing to hecpack' },
   ];
-  if (modules.includes('git-safety')) {
-    files.push({ path: '.claude/settings.json', content: json(gitSafetySettings(readProject('.claude/settings.json'))), note: 'deny rules for destructive git commands', module: 'git-safety' });
-  }
   return files.map((file) => {
     const before = readProject(file.path);
     return { ...file, action: before === undefined ? 'create' : before === file.content ? 'same' : 'update' };
