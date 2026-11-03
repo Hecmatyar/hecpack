@@ -1,7 +1,7 @@
 {
   "name": "hecpack",
   "version": "0.2.0",
-  "description": "A Claude Code workflow kit: task triage, architect and thinker agents, rules injected per task, handoff across compactions. /hecpack:init sets a project up through a short guided choice, /hecpack:preview shows the setup without touching the project, /hecpack:metrics takes before/after snapshots, /hecpack:usage charts tokens and money per model, /hecpack:context shows the context tree per mode and agent.",
+  "description": "A Claude Code workflow kit: task triage, architect and thinker agents, rules injected per task, handoff across compactions. /hecpack:init sets a project up through a short guided choice, /hecpack:preview shows the setup without touching the project, /hecpack:metrics takes before/after snapshots, /hecpack:usage charts tokens and money per model, /hecpack:context shows the context tree per mode and agent, /hecpack:coord the state of coordinated pieces.",
   "author": {
     "name": "hecmatyar"
   },

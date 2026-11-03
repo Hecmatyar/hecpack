@@ -44,9 +44,12 @@ const contextMap = (level, rules = [], agentList = ['hecpack:checker']) => {
     types.e2e = [...types.code, `${core('workflow.md')}#E2E`];
     tags.e2e = 'e2e';
   }
+  // Above lite a code session takes the coordinator role itself when no platform coordinator runs and
+  // splitting pays; deep adds the chain of chats and the explicit [coord] session.
+  if (level === 'deep') types.code.push(`${core('coordination.md')}#Chain of chats`);
+  if (level !== 'lite') types.code.push(`${core('coordination.md')}#Sub-sessions and the coordinator`);
   if (level === 'deep') {
     types.coord = [core('session.md'), core('workflow.md'), core('coordination.md'), stack, map];
-    types.code.push(`${core('coordination.md')}#Chain of chats`);
     tags.coord = 'coord';
     keywords.coord = ['coordinate', 'coordinator', 'sub-sessions'];
   }
