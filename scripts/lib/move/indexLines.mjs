@@ -5,7 +5,7 @@
 
 import { removal } from './declarations.mjs';
 import { relativeSpecifier } from './plan.mjs';
-import { resolveImport } from './source.mjs';
+import { resolveImport } from '../code/source.mjs';
 
 // The old package's export line of a moved module leaves its entry; the new package's entry gets it
 // with the new path, and its names are kept for the importers of the old alias.

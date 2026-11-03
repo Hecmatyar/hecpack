@@ -3,8 +3,8 @@
 import { SCRIPT_FILE } from '../layout.mjs';
 import { importedName } from './declarations.mjs';
 import { RELATIVE, pointsAt } from './plan.mjs';
-import { exportedNames, importsOf, resolveImport } from './source.mjs';
-import { ts } from './typescript.mjs';
+import { exportedNames, importsOf, resolveImport } from '../code/source.mjs';
+import { ts } from '../code/typescript.mjs';
 
 // Per package, the export lines of its entry file as they are before the move: the module each points
 // at (resolved file and path as spelled) and its names → their names in the module.

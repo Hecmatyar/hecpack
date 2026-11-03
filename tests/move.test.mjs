@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import { findWorkspaces, readJson } from '../scripts/lib/detect.mjs';
 import { readLayout } from '../scripts/lib/layout.mjs';
 import { move } from '../scripts/lib/move/move.mjs';
-import { loadTypeScript } from '../scripts/lib/move/typescript.mjs';
+import { loadTypeScript } from '../scripts/lib/code/typescript.mjs';
 import { parseOptions } from '../scripts/move.mjs';
 
 // The parser is the project's TypeScript; here a global install or HECPACK_TYPESCRIPT.

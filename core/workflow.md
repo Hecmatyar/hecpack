@@ -19,6 +19,7 @@ How a code task runs. Injected by the hecpack context hook into every code sessi
 ## Validation
 
 - Validate every project you changed with the commands in `.claude/hecpack/stack.md` § Validation: typecheck, lint, the tests of code whose logic changed, and the typecheck of every project that imports an export you changed. Run them in one command where the tooling allows; on a failure rerun only the failed task to read its log, never every task's full output.
+- When `.claude/hecpack/architecture.md` exists, `/hecpack:arch --check` on the changed files is part of validation: a break in a touched file is fixed in the same task.
 - A failure in a file outside your diff: `git status --short <path>` first. The user and other sessions edit the tree in parallel, so an uncommitted change you did not make is their work in progress: report it as theirs, do not fix, revert or reformat it.
 - New or changed domain logic gets its tests in the same task (`code.md` § Tests); validation passes before the review, and the report says what ran and how it ended.
 

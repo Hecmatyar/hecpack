@@ -34,15 +34,17 @@ export const agentsFor = (level, techs, without = []) => {
   return agents.filter((agent) => !without.includes(agent));
 };
 
-const contextMap = (level, rules = [], agentList = ['hecpack:checker']) => {
+const contextMap = (level, rules = [], agentList = ['hecpack:checker'], architecture = false) => {
+  // The accepted architecture (/hecpack:arch) rides with the stack wherever code is written or reviewed.
   const stack = `${HOME}/stack.md`;
+  const arch = architecture ? [`${HOME}/architecture.md`] : [];
   const map = `${HOME}/project-map.md`;
   const types = {
     q: [core('session.md'), stack],
     code:
       level === 'lite'
-        ? [core('session.md'), `${core('workflow.md')}#Triage`, core('code.md'), stack, ...rules]
-        : [core('session.md'), core('workflow.md'), core('code.md'), stack, map, ...rules],
+        ? [core('session.md'), `${core('workflow.md')}#Triage`, core('code.md'), stack, ...arch, ...rules]
+        : [core('session.md'), core('workflow.md'), core('code.md'), stack, ...arch, map, ...rules],
   };
   const tags = { q: 'q', code: 'code', s: 'code', m: 'code' };
   const keywords = {};
@@ -66,7 +68,7 @@ const contextMap = (level, rules = [], agentList = ['hecpack:checker']) => {
   }
   const agents = { 'hecpack:checker': [stack] };
   if (level !== 'lite') {
-    agents['hecpack:architect'] = [core('code.md'), stack, map, ...rules];
+    agents['hecpack:architect'] = [core('code.md'), stack, ...arch, map, ...rules];
     agents['hecpack:thinker'] = [stack, map];
   }
   if (agentList.includes('hecpack:designer')) agents['hecpack:designer'] = [stack, map, ...rules];
@@ -239,7 +241,7 @@ export const plan = ({ detection, sources, level, language = 'en', techIds, rule
   const agentList = agentsFor(level, techs, without);
   const files = [
     { path: `${HOME}/config.json`, content: json(config({ level, language, techs, rules, agentList, without: without.filter((id) => agentsFor(level, techs).includes(id)) })), id: 'config', note: NOTES.config },
-    { path: `${HOME}/context-map.json`, content: json(contextMap(level, rules, agentList)), id: 'contextMap', note: NOTES.contextMap },
+    { path: `${HOME}/context-map.json`, content: json(contextMap(level, rules, agentList, readProject(`${HOME}/architecture.md`) !== undefined)), id: 'contextMap', note: NOTES.contextMap },
     { path: `${HOME}/stack.md`, content: stackMd({ detection, techs, sources: chosen, date, rules }), id: 'stack', note: NOTES.stack },
     ...(level === 'lite' ? [] : [{ path: `${HOME}/project-map.md`, content: projectMapMd({ detection, date }), id: 'projectMap', note: NOTES.projectMap }]),
     { path: claudeMd, content: withSection(readProject(claudeMd) ?? '', claudeSection(level)), id: 'claudeMd', note: NOTES.claudeMd },

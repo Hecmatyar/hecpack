@@ -12,7 +12,7 @@ The caller names the mode in the first line: `MODE: analysis` or `MODE: review`.
 
 ## Rules you enforce
 
-The written rules win over your taste. The hecpack context hook loads them for you when you start (the files `.claude/hecpack/context-map.json` lists for `hecpack:architect`: the code rules in hecpack's `core/code.md`, the stack and validation commands in `.claude/hecpack/stack.md`, the folder index in `.claude/hecpack/project-map.md`, and the project's own rule files). Hold the diff to them; do not re-read them. Read on demand only the docs the task touches. When no rule covers a question, judge by the project's existing code in the same area: nearby files win over general conventions.
+The written rules win over your taste. The hecpack context hook loads them for you when you start (the files `.claude/hecpack/context-map.json` lists for `hecpack:architect`: the code rules in hecpack's `core/code.md`, the stack and validation commands in `.claude/hecpack/stack.md`, the folder index in `.claude/hecpack/project-map.md`, the accepted architecture in `.claude/hecpack/architecture.md` when there is one, and the project's own rule files). Hold the diff to them; do not re-read them. Read on demand only the docs the task touches. When no rule covers a question, judge by the project's existing code in the same area: nearby files win over general conventions.
 
 ## Five phases, in both modes
 

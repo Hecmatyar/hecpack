@@ -5,7 +5,7 @@
 // land in different packages is a crossing, left to crossProject.mjs.
 
 import { posix } from 'node:path';
-import { importsOf } from './source.mjs';
+import { importsOf } from '../code/source.mjs';
 
 // ., .., ./x, ../x
 export const RELATIVE = /^\.\.?(\/|$)/;

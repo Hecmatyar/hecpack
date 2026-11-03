@@ -10,9 +10,9 @@ import { resolveCrossings } from './crossProject.mjs';
 import { findMentions } from './mentions.mjs';
 import { createMapPath, expandMoves, Refusal } from './paths.mjs';
 import { planEdits } from './plan.mjs';
-import { CODE_FILE, createSources } from './source.mjs';
-import { readTree } from './tree.mjs';
-import { loadTypeScript, TYPESCRIPT_MISSING } from './typescript.mjs';
+import { CODE_FILE, createSources } from '../code/source.mjs';
+import { readTree } from '../code/tree.mjs';
+import { loadTypeScript, TYPESCRIPT_MISSING } from '../code/typescript.mjs';
 
 // Output stays short enough to read: longer lists end with a count.
 const LIMITS = { edits: 80, edited: 80, mentions: 30 };
@@ -39,6 +39,11 @@ export const move = ({ root, layout, moves: pairs, dryRun = false, format = true
   const todos = [...crossed.todos];
   const edited = [...new Set(edits.map(({ path }) => mapPath(path) ?? path))].sort();
   const lines = moves.flatMap(describeMove);
+  // Read before anything is written; a moved file is named by its new path.
+  const mentions = findMentions({ root, tree, layout, paths: moves.map(({ from }) => from), skip: editedLines(root, edits) }).map((mention) => {
+    const [file, rest] = [mention.slice(0, mention.indexOf(':')), mention.slice(mention.indexOf(':'))];
+    return `${mapPath(file) ?? file}${rest}`;
+  });
 
   if (dryRun) {
     lines.push(...capped(sortEdits(edits).map(describeEdit), LIMITS.edits, 'edits'));
@@ -52,8 +57,6 @@ export const move = ({ root, layout, moves: pairs, dryRun = false, format = true
     }
   }
   lines.push(...todos.map((todo) => `todo: ${todo}`));
-  const skip = new Set(edits.map(({ path, line }) => `${path}:${line}`));
-  const mentions = findMentions({ root, tree, layout, paths: moves.map(({ from }) => from), skip });
   lines.push(...capped(mentions.map((mention) => `mention (not rewritten): ${mention}`), LIMITS.mentions, 'mentions'));
   lines.push(dryRun ? 'dry run: nothing written' : nextStep(layout, moves, edited, validation));
   return { exitCode: todos.length ? 1 : 0, lines };
@@ -90,6 +93,21 @@ const linkingFiles = (root, tree, layout, moves, mapPath) => {
     for (const key of keys) if (text.includes(key)) return true;
     return false;
   });
+};
+
+// 'file:line' of every line an edit spans (a specifier can sit lines below its statement's start), as the
+// files read before the move.
+const editedLines = (root, edits) => {
+  const texts = new Map();
+  const lines = new Set();
+  for (const { path, start, end } of edits) {
+    if (!texts.has(path)) texts.set(path, readFileSync(join(root, path), 'utf8'));
+    const text = texts.get(path);
+    const first = text.slice(0, start).split('\n').length;
+    const last = first + text.slice(start, end).split('\n').length - 1;
+    for (let line = first; line <= last; line += 1) lines.add(`${path}:${line}`);
+  }
+  return lines;
 };
 
 const capped = (lines, limit, what) =>

@@ -1,8 +1,8 @@
 // Text edits of import and export declarations: elements regrouped by the module they now
 // come from, a statement's lines removed.
 
-import { isTypeOnlyDeclaration, lineOf } from './source.mjs';
-import { ts } from './typescript.mjs';
+import { isTypeOnlyDeclaration, lineOf } from '../code/source.mjs';
+import { ts } from '../code/typescript.mjs';
 import { specifierEdit } from './plan.mjs';
 
 // One file's declarations whose elements now come from other modules (changes: [{ node, groups:

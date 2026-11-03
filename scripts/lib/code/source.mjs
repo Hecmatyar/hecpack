@@ -1,4 +1,4 @@
-// Syntax-only parsing with the project's TypeScript: the module specifiers of a file with their
+// Syntax-only parsing with the project's TypeScript (move and arch): the module specifiers of a file with their
 // positions, and the names a module exports. A .vue, .svelte or .astro file is parsed as its script
 // blocks with everything else blanked to spaces, so every offset still points into the real file.
 
@@ -126,6 +126,12 @@ const TS_FOR_JS = { '.js': ['.ts', '.tsx'], '.jsx': ['.tsx'], '.mjs': ['.mts'], 
 export const resolveImport = (fileSet, from, specifier, platforms = []) => {
   if (!specifier.startsWith('.')) return null;
   const target = posix.join(posix.dirname(from), specifier).replace(/\/$/, '');
+  return resolveFile(fileSet, target, platforms) ?? `${target}.ts`;
+};
+
+// The file a module path names as a bundler finds it: as is, with an extension, as the .ts file of a
+// .js name, as a platform variant, as a folder's index; null when the tree has none.
+export const resolveFile = (fileSet, target, platforms = []) => {
   const variants = (base) => [
     ...EXTENSIONS.map((extension) => base + extension),
     ...platforms.flatMap((platform) => EXTENSIONS.slice(0, 4).map((extension) => `${base}.${platform}${extension}`)),
@@ -137,7 +143,7 @@ export const resolveImport = (fileSet, from, specifier, platforms = []) => {
     ...variants(target),
     ...variants(`${target}/index`),
   ];
-  return candidates.find((candidate) => fileSet.has(candidate)) ?? `${target}.ts`;
+  return candidates.find((candidate) => fileSet.has(candidate)) ?? null;
 };
 
 // The declaration itself is `import type …` or `export type … from`.

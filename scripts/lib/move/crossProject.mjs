@@ -8,8 +8,8 @@ import { importedName, namedElements, regroup } from './declarations.mjs';
 import { exportsModule, indexAdditions, moveIndexLine } from './indexLines.mjs';
 import { readLibExports } from './libExports.mjs';
 import { relativeSpecifier, specifierEdit } from './plan.mjs';
-import { importsOf } from './source.mjs';
-import { ts } from './typescript.mjs';
+import { importsOf } from '../code/source.mjs';
+import { ts } from '../code/typescript.mjs';
 
 // → { edits, todos }. edits: the planned specifier edits, so that a declaration they retarget still
 // takes in elements for its new module. files: the code files to read. Index lines: indexLines.mjs.
