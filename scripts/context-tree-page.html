@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hecpack context tree</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --fg: #17202b; --muted: #5d6b7a; --line: #dde3ea;
+  --auto: #2f6fdc; --link: #9db8e8; --deep: #e6ebf2; --warn: #9a4a07; --warn-bg: #fdf1e7;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --panel: #161d26; --fg: #e4e9ef; --muted: #93a1b0; --line: #28323e;
+    --auto: #5b93f0; --link: #34507e; --deep: #222c38; --warn: #f0954f; --warn-bg: #2b1d12; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --panel: #161d26; --fg: #e4e9ef; --muted: #93a1b0; --line: #28323e;
+  --auto: #5b93f0; --link: #34507e; --deep: #222c38; --warn: #f0954f; --warn-bg: #2b1d12; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 28px 16px 56px; display: flex; flex-direction: column; gap: 32px; }
+h1 { font-size: 28px; line-height: 1.15; margin: 0; letter-spacing: -0.01em; }
+h1 small { color: var(--muted); font-weight: 400; font-size: 16px; margin-left: 6px; }
+h2 { font-size: 20px; margin: 0 0 6px; }
+p { margin: 0; max-width: 72ch; }
+.muted { color: var(--muted); } .note { font-size: 13px; color: var(--muted); }
+code, .mono { font-family: var(--mono); font-size: 13px; }
+.lead { display: flex; flex-direction: column; gap: 8px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.fact { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 2px; }
+.fact b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); margin: 8px 0 10px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+details.row { border-top: 1px solid var(--line); padding-block: 9px; }
+details.row summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: minmax(140px, 250px) 1fr; gap: 12px; align-items: center; }
+details.row summary::-webkit-details-marker { display: none; }
+details.row summary:focus-visible { outline: 2px solid var(--auto); outline-offset: 3px; border-radius: 4px; }
+.rname { font-weight: 600; font-size: 14px; min-width: 0; overflow-wrap: break-word; }
+.rname small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.rname .delta { font-weight: 500; font-size: 12px; margin-left: 6px; font-family: var(--mono); }
+.delta.up { color: var(--warn); } .delta.down { color: #1e7a45; }
+:root[data-theme="dark"] .delta.down { color: #6fcf97; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .delta.down { color: #6fcf97; } }
+.fname { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+.bar { position: relative; height: 22px; background: var(--deep); border-radius: 4px; overflow: hidden; min-width: 0; }
+.bar span { position: absolute; top: 0; bottom: 0; }
+.bar .a { background: var(--auto); } .bar .o { background: var(--link); border-left: 2px solid var(--panel); }
+.bar em { position: absolute; right: 6px; top: 2px; font-style: normal; font-size: 12px; font-family: var(--mono); color: var(--fg); background: color-mix(in srgb, var(--deep) 70%, transparent); padding: 0 4px; border-radius: 3px; }
+.open { margin: 10px 0 4px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.box h3 { font-size: 13px; font-weight: 600; margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; }
+.box ul { list-style: none; margin: 0; padding: 0; }
+.box li { display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 12.5px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.box li:last-child { border-bottom: 0; }
+.box li > span:first-child { overflow-wrap: break-word; min-width: 0; }
+.box li > span:last-child, .n { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.box li small { display: block; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--muted); font-size: 12px; }
+.src { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; white-space: nowrap; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.warn { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin: 8px 0 0; }
+.sort { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.sort button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+.sort button[aria-pressed="true"] { background: var(--auto); border-color: var(--auto); color: #fff; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.heavy li > span:first-child { flex: 1; }
+.empty { color: var(--muted); font-size: 13px; }
+@media (max-width: 560px) { details.row summary { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="lead">
+  <h1 id="title"></h1>
+  <p class="muted" id="sub"></p>
+</header>
+<section class="facts" id="facts"></section>
+<section>
+  <h2 id="h-readers"></h2>
+  <p class="note" id="n-readers"></p>
+  <div class="legend" id="l-readers"></div>
+  <div id="readers"></div>
+</section>
+<section>
+  <h2 id="h-heavy"></h2>
+  <p class="note" id="n-heavy"></p>
+  <div class="box heavy" style="margin-top:10px"><ul id="heavy"></ul></div>
+</section>
+<section>
+  <h2 id="h-files"></h2>
+  <p class="note" id="n-files"></p>
+  <div class="sort" role="group" id="sort"></div>
+  <div class="legend" id="l-files"></div>
+  <div id="files"></div>
+</section>
+<section class="cols">
+  <div class="box">
+    <h3><span id="h-rules"></span><span class="n" id="t-rules"></span></h3>
+    <p class="note" style="margin-bottom:8px" id="n-rules"></p>
+    <ul id="rules"></ul>
+  </div>
+  <div class="box">
+    <h3><span id="h-orph"></span><span class="n" id="t-orph"></span></h3>
+    <p class="note" style="margin-bottom:8px" id="n-orph"></p>
+    <ul id="orph"></ul>
+  </div>
+</section>
+<section>
+  <h2 id="h-dups"></h2>
+  <p class="note" id="n-dups"></p>
+  <div class="box" style="margin-top:10px"><ul id="dups"></ul></div>
+</section>
+<p class="note" id="foot"></p>
+</div>
+<script>
+const D = /*__REPORT__*/null;
+const T = {
+  en: {
+    title: 'Context tree', sub: (d, m) => `What reaches each mode of the main session and each agent at start, and what it may read by link. ${m} Built on ${d}; tokens are an estimate, characters / 4.`,
+    mapOf: (p) => `Context map: ${p}.`, noMap: 'hecpack is not set up here: the page shows what Claude Code loads by itself and the project\'s own agents.',
+    fInMap: 'Files in the map', fInMapN: (a, b, c) => `${a} of ${b} .md in the project${c ? `, plus ${c} from hecpack` : ''}`,
+    fStart: 'At start', fStartN: (a, b) => `from ${a} to ${b}`,
+    fAll: 'If everything linked is opened', fAllN: 'in practice a small part is read',
+    fReaders: 'Modes and agents', fReadersN: (m, a) => `${m} modes of the main session, ${a} agents`,
+    hReaders: 'Modes and agents', nReaders: '«At start» is loaded with no choice: Claude Code\'s own files (CLAUDE.md, rules without paths, memory index, agent and skill lists), what the hecpack hook injects for the prompt tag or the agent, and the agent\'s own instructions. «By link» is what those files point to; it is read only when the task needs it.',
+    lStart: 'at start', lLink: 'by link, if all opened', lClick: 'click a row for the lists',
+    main: 'Main', tag: 'tag', untagged: 'or untagged', words: 'words', hookAgent: 'agent, hecpack hook at start', projectAgent: 'project agent, no hecpack hook', builtin: 'built-in agent, hecpack hook at start',
+    startList: 'At start', linkList: 'By link', worst: (t, n) => `all reachable by links: ${t} in ${n} files`,
+    since: 'since', hookOver: (c, l) => `The hook injects ${c} characters here, over its ${l}: the rest is named for the agent to read itself. Move a file to a link, or raise parts in context-map.json.`,
+    src: { claude: 'Claude Code', hook: 'hook', agent: 'agent body', list: 'list' },
+    lists: { '(agent descriptions)': (n) => `agent list, ${n}`, '(skill descriptions)': (n) => `skill list, ${n}` },
+    hHeavy: 'What costs most at start', nHeavy: 'A file\'s tokens times the modes and agents that load it at start. These are the first candidates to shorten, split, or move behind a link.', readersN: (n) => `× ${n}`,
+    hFiles: 'Files', nFiles: 'For each file: its weight, the modes and agents that load it at start, and those that reach it by link.', byWeight: 'by weight', byStart: 'by start', byLink: 'by link', lFStart: 'at start', lFLink: 'by link', tokens: 'tokens', nobody: 'none',
+    hRules: 'Rules by path', nRules: 'Loaded by Claude Code when the session opens a file the globs match: .claude/rules with paths, and CLAUDE.md files in subfolders.', noRules: 'none',
+    hOrph: 'Read by nobody', nOrph: 'Agent docs that no mode or agent loads and no file links to. Delete them, or link them from where they matter.', noOrph: 'none',
+    hDups: 'Repeated text', nDups: 'Pairs that share 8-word phrases (the percentage is of the smaller file). Keep one copy and link to it.', noDups: 'no notable repeats',
+    foot: 'Built by /hecpack:context, no model involved. Run it again after a change to see the difference.',
+  },
+  ru: {
+    title: 'Дерево контекста', sub: (d, m) => `Что попадает каждому режиму основной сессии и каждому агенту на старте и что он может прочитать по ссылкам. ${m} Собрано: ${d}; токены — оценка, символы / 4.`,
+    mapOf: (p) => `Карта контекста: ${p}.`, noMap: 'hecpack здесь не настроен: показано то, что Claude Code грузит сам, и собственные агенты проекта.',
+    fInMap: 'Файлов в карте', fInMapN: (a, b, c) => `${a} из ${b} .md в проекте${c ? ` и ${c} из hecpack` : ''}`,
+    fStart: 'На старте', fStartN: (a, b) => `от ${a} до ${b}`,
+    fAll: 'Если открыть всё по ссылкам', fAllN: 'на деле читают малую часть',
+    fReaders: 'Режимов и агентов', fReadersN: (m, a) => `режимов основной сессии: ${m}, агентов: ${a}`,
+    hReaders: 'Режимы и агенты', nReaders: '«На старте» попадает без выбора: файлы самого Claude Code (CLAUDE.md, правила без путей, индекс памяти, списки агентов и навыков), то, что хук hecpack вставляет по тегу запроса или для агента, и собственная инструкция агента. «По ссылкам» — то, на что эти файлы ссылаются; читается, только если задаче это нужно.',
+    lStart: 'на старте', lLink: 'по ссылкам, если открыть всё', lClick: 'нажми строку, чтобы открыть списки',
+    main: 'Основная', tag: 'тег', untagged: 'или без тега', words: 'слова', hookAgent: 'агент, хук hecpack при старте', projectAgent: 'агент проекта, без хука hecpack', builtin: 'встроенный агент, хук hecpack при старте',
+    startList: 'На старте', linkList: 'По ссылкам', worst: (t, n) => `всё достижимое по ссылкам: ${t} в файлах: ${n}`,
+    since: 'с', hookOver: (c, l) => `Хук вставляет здесь ${c} символов, больше своих ${l}: остальное агенту называется, и он читает его сам. Вынесите файл в ссылку или увеличьте parts в context-map.json.`,
+    src: { claude: 'Claude Code', hook: 'хук', agent: 'тело агента', list: 'список' },
+    lists: { '(agent descriptions)': (n) => `список агентов: ${n}`, '(skill descriptions)': (n) => `список навыков: ${n}` },
+    hHeavy: 'Что дороже всего на старте', nHeavy: 'Токены файла, умноженные на число режимов и агентов, которые грузят его на старте. Это первые кандидаты, чтобы сократить, разделить или убрать за ссылку.', readersN: (n) => `× ${n}`,
+    hFiles: 'Файлы', nFiles: 'У каждого файла: вес, режимы и агенты, которые грузят его на старте, и те, кому он доступен по ссылке.', byWeight: 'по весу', byStart: 'по чтению на старте', byLink: 'по ссылкам', lFStart: 'на старте', lFLink: 'по ссылкам', tokens: 'токенов', nobody: 'никто',
+    hRules: 'Правила по путям', nRules: 'Claude Code грузит их сам, когда сессия открывает файл под этими масками: .claude/rules с paths и CLAUDE.md во вложенных папках.', noRules: 'нет',
+    hOrph: 'Никто не читает', nOrph: 'Документы для агентов, которые не грузит ни один режим и ни один агент и на которые никто не ссылается. Удалите их или сошлитесь там, где они нужны.', noOrph: 'нет',
+    hDups: 'Повторы текста', nDups: 'Пары файлов с общими фразами из 8 слов (процент от меньшего файла). Оставьте одну копию и сошлитесь на неё.', noDups: 'заметных повторов нет',
+    foot: 'Собрано командой /hecpack:context, без модели. Запустите снова после правок, чтобы увидеть разницу.',
+  },
+};
+const t = T[D.lang] || T.en;
+document.documentElement.lang = D.lang;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const k = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v));
+const fmtDate = (s) => new Intl.DateTimeFormat(D.lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(s));
+
+const R = D.readers;
+const label = (r) => (r.kind === 'main' ? `${t.main} · ${r.name}` : r.name);
+const trigger = (r) => {
+  if (r.kind !== 'main') return r.kind === 'project-agent' ? t.projectAgent : r.kind === 'builtin' ? t.builtin : t.hookAgent;
+  const bits = [];
+  if (r.trigger.tags?.length) bits.push(`${t.tag} ${r.trigger.tags.map((x) => `[${x}]`).join(' ')}`);
+  if (r.trigger.untagged) bits.push(t.untagged);
+  if (r.trigger.keywords?.length) bits.push(`${t.words}: ${r.trigger.keywords.join(', ')}`);
+  return bits.join(', ');
+};
+const nameOf = Object.fromEntries(R.map((r) => [r.id, label(r)]));
+
+$('title').innerHTML = `${esc(t.title)} <small>${esc(D.root.split('/').pop())}</small>`;
+$('sub').textContent = t.sub(fmtDate(D.generatedAt), D.hecpack ? t.mapOf(D.manifest) : t.noMap);
+
+const starts = R.map((r) => r.mustTok);
+const alls = R.map((r) => r.mustTok + r.optionalTok);
+const minR = R[starts.indexOf(Math.min(...starts))], maxR = R[starts.indexOf(Math.max(...starts))];
+const mains = R.filter((r) => r.kind === 'main').length;
+$('facts').innerHTML = [
+  [t.fInMap, D.stats.inMapProject, t.fInMapN(D.stats.inMapProject, D.stats.projectFiles, D.stats.inMapPlugin)],
+  [t.fStart, `${k(Math.min(...starts))} – ${k(Math.max(...starts))}`, t.fStartN(label(minR), label(maxR))],
+  [t.fAll, `${k(Math.min(...alls))} – ${k(Math.max(...alls))}`, t.fAllN],
+  [t.fReaders, R.length, t.fReadersN(mains, R.length - mains)],
+].map(([a, b, c]) => `<div class="fact"><span class="muted">${esc(a)}</span><b>${esc(b)}</b><span class="note">${esc(c)}</span></div>`).join('');
+
+$('h-readers').textContent = t.hReaders;
+$('n-readers').textContent = t.nReaders;
+$('l-readers').innerHTML = `<span><i style="background:var(--auto)"></i>${esc(t.lStart)}</span><span><i style="background:var(--link)"></i>${esc(t.lLink)}</span><span>${esc(t.lClick)}</span>`;
+const prev = D.previous?.readers ?? {};
+const delta = (r) => {
+  const p = prev[r.id];
+  if (!p) return '';
+  const d = r.mustTok - p[0];
+  if (!d) return '';
+  return `<span class="delta ${d > 0 ? 'up' : 'down'}" title="${esc(t.since)} ${esc(fmtDate(D.previous.at))}">${d > 0 ? '+' : '−'}${k(Math.abs(d))}</span>`;
+};
+const MAXR = Math.max(...alls, 1);
+const itemName = (e) => (t.lists[e.p] ? t.lists[e.p](e.count) : e.p);
+// Paths break after a slash, never inside a name.
+const path = (p) => esc(p).replace(/\//g, '/<wbr>');
+$('readers').innerHTML = R.map((r) => `
+<details class="row"><summary>
+  <div class="rname">${esc(label(r))}${delta(r)}<small>${esc(trigger(r))}</small></div>
+  <div class="bar" role="img" aria-label="${k(r.mustTok)} ${esc(t.lStart)}, ${k(r.optionalTok)} ${esc(t.lLink)}">
+    <span class="a" style="left:0;width:${(r.mustTok / MAXR) * 100}%"></span><span class="o" style="left:${(r.mustTok / MAXR) * 100}%;width:${(r.optionalTok / MAXR) * 100}%"></span>
+    <em>${k(r.mustTok)} + ${k(r.optionalTok)}</em></div>
+</summary>
+${r.hook?.over ? `<div class="warn">${esc(t.hookOver(r.hook.chars, r.hook.limit))}</div>` : ''}
+<div class="open">
+  <div class="box"><h3><span><i class="dot" style="background:var(--auto)"></i>${esc(t.startList)}</span><span class="n">${r.must.length} · ${k(r.mustTok)}</span></h3>
+    <ul>${r.must.map((e) => `<li><span>${t.lists[e.p] ? esc(itemName(e)) : path(e.p)}<span class="src">${esc(t.src[e.src] ?? e.src)}</span></span><span>${k(e.tok)}</span></li>`).join('')}</ul></div>
+  <div class="box"><h3><span><i class="dot" style="background:var(--link)"></i>${esc(t.linkList)}</span><span class="n">${r.optional.length} · ${k(r.optionalTok)}</span></h3>
+    <ul>${r.optional.map((e) => `<li><span>${path(e.p)}${e.when ? `<small>${esc(e.when)}</small>` : ''}</span><span>${k(e.tok)}</span></li>`).join('') || `<li><span class="empty">${esc(t.nobody)}</span></li>`}</ul>
+    <p class="note" style="margin-top:6px">${esc(t.worst(k(r.worstTok), r.reachCount))}</p></div>
+</div></details>`).join('');
+
+$('h-heavy').textContent = t.hHeavy;
+$('n-heavy').textContent = t.nHeavy;
+const maxCost = Math.max(...D.heavy.map((h) => h.cost), 1);
+$('heavy').innerHTML = D.heavy.map((h) => `<li><span>${path(h.p)}<div class="bar" style="height:8px;margin-top:4px"><span class="a" style="left:0;width:${(h.cost / maxCost) * 100}%"></span></div></span><span>${k(h.tok)} ${esc(t.readersN(h.readers))} = ${k(h.cost)}</span></li>`).join('') || `<li><span class="empty">${esc(t.nobody)}</span></li>`;
+
+$('h-files').textContent = t.hFiles;
+$('n-files').textContent = t.nFiles;
+$('l-files').innerHTML = `<span><i style="background:var(--auto)"></i>${esc(t.lFStart)}</span><span><i style="background:var(--link)"></i>${esc(t.lFLink)}</span><span>0–${R.length}</span>`;
+$('sort').innerHTML = [['tok', t.byWeight], ['auto', t.byStart], ['link', t.byLink]].map(([key, text], i) => `<button data-k="${key}" aria-pressed="${i === 0}">${esc(text)}</button>`).join('');
+const NR = Math.max(R.length, 1);
+const files = (key) => {
+  const list = [...D.files].sort((x, y) => (key === 'tok' ? y.tok - x.tok : y[key].length - x[key].length || y.tok - x.tok));
+  $('files').innerHTML = list.map((f) => `
+<details class="row"><summary>
+  <div class="rname"><span class="fname">${path(f.p)}</span><small>${k(f.tok)} ${esc(t.tokens)}</small></div>
+  <div class="bar" role="img" aria-label="${f.auto.length} ${esc(t.lFStart)}, ${f.link.length} ${esc(t.lFLink)}">
+    <span class="a" style="left:0;width:${(f.auto.length / NR) * 100}%"></span><span class="o" style="left:${(f.auto.length / NR) * 100}%;width:${(f.link.length / NR) * 100}%"></span>
+    <em>${f.auto.length} + ${f.link.length}</em></div>
+</summary>
+<div class="open">
+  <div class="box"><h3><span><i class="dot" style="background:var(--auto)"></i>${esc(t.lFStart)}</span><span class="n">${f.auto.length}</span></h3><ul>${f.auto.map((id) => `<li><span>${esc(nameOf[id] ?? id)}</span></li>`).join('') || `<li><span class="empty">${esc(t.nobody)}</span></li>`}</ul></div>
+  <div class="box"><h3><span><i class="dot" style="background:var(--link)"></i>${esc(t.lFLink)}</span><span class="n">${f.link.length}</span></h3><ul>${f.link.map((id) => `<li><span>${esc(nameOf[id] ?? id)}</span></li>`).join('') || `<li><span class="empty">${esc(t.nobody)}</span></li>`}</ul></div>
+</div></details>`).join('');
+};
+files('tok');
+for (const b of document.querySelectorAll('#sort button')) b.onclick = () => {
+  for (const x of document.querySelectorAll('#sort button')) x.setAttribute('aria-pressed', String(x === b));
+  files(b.dataset.k);
+};
+
+$('h-rules').textContent = t.hRules;
+$('n-rules').textContent = t.nRules;
+$('t-rules').textContent = `${D.pathRules.length} · ${k(D.pathRules.reduce((s, r) => s + r.tok, 0))}`;
+$('rules').innerHTML = D.pathRules.map((r) => `<li><span>${path(r.p)}<small>${esc(r.globs.join(', '))}</small></span><span>${k(r.tok)}</span></li>`).join('') || `<li><span class="empty">${esc(t.noRules)}</span></li>`;
+$('h-orph').textContent = t.hOrph;
+$('n-orph').textContent = t.nOrph;
+$('t-orph').textContent = `${D.orphans.length} · ${k(D.orphans.reduce((s, r) => s + r.tok, 0))}`;
+$('orph').innerHTML = D.orphans.map((r) => `<li><span>${path(r.p)}</span><span>${k(r.tok)}</span></li>`).join('') || `<li><span class="empty">${esc(t.noOrph)}</span></li>`;
+$('h-dups').textContent = t.hDups;
+$('n-dups').textContent = t.nDups;
+$('dups').innerHTML = D.duplicates.map((d) => `<li><span>${path(d.a)} ↔ ${path(d.b)}${d.example ? `<small>«${esc(d.example)}»</small>` : ''}</span><span>${d.pct}%</span></li>`).join('') || `<li><span class="empty">${esc(t.noDups)}</span></li>`;
+$('foot').textContent = t.foot;
+</script>
+</body>
+</html>
