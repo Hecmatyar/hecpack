@@ -12,6 +12,7 @@
 - `/hecpack:init`: a guided setup in one short round of questions (level with a recommendation from the stack, technologies), the plan with diffs before anything is written, edited generated files kept on a second run.
 - Rule documents the project already has (CLAUDE.md, AGENTS.md, Cursor and Copilot rules, `.claude/rules`, `.claude/docs`, contributor docs) are found and tagged by topic; `/init` reads them, carries over what hecpack lacks (loaded with the core through `--rules`), and puts each conflict to the user with the trade-off.
 - `/hecpack:metrics`: snapshots of code shape and commit rhythm, stored in the plugin's data folder, with the before/after table.
+- Agents by stack: `hecpack:designer` (the project's design system and docs first, a proposal when there are none) with a UI technology, `hecpack:e2e-runner` with an e2e suite; `stack.md` § E2E carries the commands or the suggestion to add a suite; `[design]` and `[e2e]` prompt tags and the Design and E2E sections of the workflow.
 - The preview page shows the recommended level, the rule documents found and the exact `/hecpack:init` command for the selection. Optional modules are wired through (`--modules`, the page) but none ships yet: hecpack sets no permissions and no git policy, those come from the user's environment.
 
 ## Next

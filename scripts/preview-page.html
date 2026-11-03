@@ -102,7 +102,7 @@ const T = {
     topics: 'затрагивает', optional: 'по желанию', modules: 'Дополнительно',
     info: {
       lite: 'Правила сессии, триаж, стек и команды проверки; агент checker.',
-      standard: 'Лёгкий плюс цикл архитектора (анализ перед задачей M, ревью после каждой), thinker и карта проекта.',
+      standard: 'Лёгкий плюс цикл архитектора (анализ перед задачей M, ревью после каждой), thinker и карта проекта; designer, если в стеке есть UI, e2e-runner, если есть e2e-тесты.',
       deep: 'Стандарт плюс цепочка чатов, подсессии с координатором и ограничение моделей по агентам.',
     },
     warn: {
@@ -198,7 +198,7 @@ const render = () => {
     </section>
     <section>
       <h2>${t.files}</h2>
-      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}</p>
+      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}<br><span class="tag">${REPORT.lang === 'ru' ? 'Агенты' : 'Agents'}: ${(level.agents ?? []).map(esc).join(', ')}</span></p>
       ${level.files.filter((file) => !file.module || state.modules.has(file.module)).map((file) => `
         <details class="file">
           <summary><span class="badge ${file.action}">${t[file.action]}</span><span class="path">${esc(file.path)}</span>${file.module ? `<span class="tag">${t.optional}: ${esc(file.module)}</span>` : ''}

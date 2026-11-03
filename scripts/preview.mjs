@@ -14,7 +14,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEVEL_INFO, LEVELS, MODULES, plan } from './lib/plan.mjs';
+import { agentsFor, LEVEL_INFO, LEVELS, MODULES, plan } from './lib/plan.mjs';
 import { analyze, checkTechs, PLUGIN_ROOT, pluginVersion } from './lib/setup.mjs';
 
 export const parseArgs = (argv) => {
@@ -81,8 +81,10 @@ export const preview = (args) => {
   for (const level of LEVELS) {
     // Every optional module is planned too; the page shows them unticked and /init takes --modules.
     const files = plan({ detection, sources, level, language: args.lang, techIds: args.techs, modules: Object.keys(MODULES), readProject, date });
+    const chosenTechs = args.techs ? detection.techs.filter((tech) => args.techs.includes(tech.id)) : detection.techs;
     levels[level] = {
       info: LEVEL_INFO[level],
+      agents: agentsFor(level, chosenTechs),
       files: files.map((file) => {
         const target = join(out, level, 'files', file.path);
         mkdirSync(dirname(target), { recursive: true });
@@ -131,6 +133,7 @@ export const preview = (args) => {
       sources: bySource[tech.id] ?? [],
     })),
     validation: detection.validation,
+    e2e: detection.e2e,
     claude: detection.claude,
     warnings: analysis.warnings,
     levels,
@@ -149,6 +152,8 @@ export const summary = (report) => {
     `Technologies (${report.techs.length}): ${report.techs.map((tech) => `${tech.label}${tech.version ? ` ${tech.version}` : ''}`).join(', ')}.`,
     `Validation: ${report.validation.map((item) => `\`${item.command}\``).join('; ') || 'none found'}.`,
     `Level ${report.selection.level}${report.selection.level === report.recommended.level ? ' (recommended)' : ` (recommended: ${report.recommended.level}, ${report.recommended.reason})`}: ${level.files.filter((file) => !file.module).map((file) => `${file.action} ${file.path} (+${file.added}/-${file.removed})`).join('; ')}.`,
+    `Agents at this level: ${level.agents.join(', ')}.`,
+    `E2E: ${report.e2e.map((item) => `\`${item.command}\``).join('; ') || 'no suite found (stack.md suggests one)'}.`,
     `Optional modules: ${level.files.filter((file) => file.module).map((file) => `${file.module} -> ${file.path}`).join('; ') || 'none'}.`,
     `Rule documents already in the project (${report.docs.length}): ${report.docs.map((doc) => doc.path).join(', ') || 'none'}.`,
   ];

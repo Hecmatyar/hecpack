@@ -8,7 +8,7 @@ hecpack is a Claude Code plugin: a generic development workflow (core) plus a pr
 
 - `.claude-plugin/` — plugin and marketplace manifests; bump `version` in both `plugin.json` and `package.json` on a release.
 - `core/` — the generic rules the context hook injects (`session.md`, `workflow.md`, `coordination.md`). Project-specific facts never go here; they belong in the generated `.claude/hecpack/` of a project.
-- `agents/` — `architect`, `thinker`, `checker`; users see them as `hecpack:<name>`.
+- `agents/` — `architect`, `thinker`, `checker` always; `designer` and `e2e-runner` are listed in a project's context map only when its stack has UI or an e2e suite (`agentsFor` in `plan.mjs`). Users see them as `hecpack:<name>`.
 - `hooks/hooks.json` + `scripts/hooks/` — context injection, model limits, handoff after compaction. Every hook is silent in a project without `.claude/hecpack/config.json` (or `context-map.json` for the context hook): keep it that way.
 - `skills/` — `preview` (`scripts/preview.mjs` + `scripts/preview-page.html`), `init` (`scripts/init.mjs`, writes after the guided choice), `metrics` (`scripts/metrics.mjs`); `scripts/scan.mjs` is the JSON the skills read first. Shared logic in `scripts/lib/`: `detect` (stack, folders, Claude setup), `docs` (the project's rule documents), `sources` (packs, plugins, context7), `plan` (files per level, modules, level recommendation), `setup` (what preview, init and scan share), `metrics`.
 - `catalog/` — `technologies.json` (what is detected and how), `packs.json` (hecpack stack packs).

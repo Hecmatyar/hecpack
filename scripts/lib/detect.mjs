@@ -226,6 +226,33 @@ export const detectValidation = (root, pkg, techs) => {
   return commands;
 };
 
+// How the e2e suite runs: an nx/turbo e2e target, an e2e script, or the runner's own command.
+export const detectE2E = (root, pkg, techs) => {
+  const ids = new Set(techs.map((tech) => tech.id));
+  const pm = packageManager(root) ?? 'npm';
+  const commands = [];
+  const scripts = pkg?.scripts ?? {};
+  if (ids.has('nx')) {
+    const nx = readJson(join(root, 'nx.json')) ?? {};
+    const plugin = (nx.plugins ?? []).find((item) => (typeof item === 'string' ? item : item.plugin) === '@nx/playwright/plugin');
+    if (plugin) {
+      const target = (typeof plugin === 'string' ? {} : plugin.options ?? {}).targetName ?? 'e2e';
+      commands.push({ command: `npx nx run-many -t ${target}`, scoped: `npx nx run <project>:${target}`, source: 'nx.json @nx/playwright/plugin' });
+    }
+  }
+  const script = Object.keys(scripts).find((name) => /^(e2e|test:e2e|e2e:run|test-e2e)$/.test(name));
+  if (script) commands.push({ command: run(pm, script), source: `package.json scripts.${script}` });
+  if (!commands.length) {
+    if (ids.has('playwright')) commands.push({ command: 'npx playwright test', source: '@playwright/test (no script)' });
+    if (ids.has('cypress')) commands.push({ command: 'npx cypress run', source: 'cypress (no script)' });
+    if (ids.has('maestro')) {
+      const dir = ['.maestro', 'maestro'].find((name) => isDir(join(root, name)));
+      commands.push({ command: `maestro test ${dir ?? '.maestro'}`, source: `${dir ?? '.maestro'}/ (Maestro flows)` });
+    }
+  }
+  return commands;
+};
+
 // The folders a project map lists: each workspace (or the root) with its source folders one level down.
 export const detectFolders = (root, workspaces, pkg) => {
   const units = workspaces.length ? workspaces : [''];
@@ -277,6 +304,7 @@ export const detect = (root, catalog) => {
     workspaces,
     techs,
     validation: detectValidation(root, pkg, techs),
+    e2e: detectE2E(root, pkg, techs),
     folders: detectFolders(root, workspaces, pkg),
     claude: detectClaude(root),
     docs: findDocs(root, workspaces),

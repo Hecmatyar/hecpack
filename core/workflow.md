@@ -20,6 +20,14 @@ How a code task runs. Injected by the hecpack context hook into every code sessi
 
 - **Thinker** (`hecpack:thinker`, read-only subagent) before the architect when the cause is unknown or disputed: a bug with several plausible explanations, one that came back or survived a fix, races, time zones, caches, a slowdown with no obvious culprit, or a «how should we solve X» with several sensible answers. Not for a small clear bug whose cause is known. Brief it with the user's words, what the screenshots show and what was tried, never your own guess as the frame. Its checks that need the user's device or account go to the user as exact steps, its ways out as options with its pick; the chosen one is triaged again. New facts go to the same thinker (SendMessage). A `Stuck` report goes to the user with its questions.
 
+## Design
+
+- A design task (new UI from a description, a design round, a refinement of a screen's look) runs in `hecpack:designer`, never in the session itself: the brief names the goal, what is approved and the screens or components it touches. The designer uses the project's own design system, tokens and design docs when they exist and proposes its own when they do not; its proposal becomes the project's rule only with the user's word (then it is saved as a rule file and listed in `context-map.json`). A new idea is shown small first (one or two key screens, A and B variants); only an approved idea is spread to every state, and only then does it go to code, as a normal code task through triage. The main session picks the model: a new idea or variants on the default, a mechanical pass over an approved design on `sonnet`.
+
+## E2E
+
+- E2E runs only on the user's request, in `hecpack:e2e-runner` (its own small context, a report under 30 lines); fixes stay in the session. One runner per run; reruns of its failures go to the same runner (SendMessage), a new level or scope gets a fresh one. A task that changes a screen, a main action, UI text or test ids updates the e2e tests of that area in the same task, or its report names the e2e areas it may have made stale. A bug the user found past e2e gets a test at the cheapest level that catches it. A test over budget or flaky is fixed, never retried silently or skipped. The commands and the suite's rules live in `.claude/hecpack/stack.md` § E2E.
+
 ## Models
 
 - The session (the coder) runs on the model picked by the user. Subagent models live in one table, `agentModels` in `.claude/hecpack/config.json`; the hecpack agent-model hook refuses an Agent call whose `model` override breaks it. Effort follows the stakes: the architect's analysis runs at `max` when the thinker rated the task's complexity high, its review at `high`; round two continues the same agent and keeps that effort.

@@ -8,7 +8,8 @@ const ids = (result) => result.techs.map((tech) => tech.id);
 
 test('a plain TypeScript + Vite app: techs, script-based validation, src folders', () => {
   const result = detect(join(FIXTURES, 'ts-vite'), catalog());
-  assert.deepEqual(ids(result).sort(), ['eslint', 'react', 'typescript', 'vite', 'vitest']);
+  assert.deepEqual(ids(result).sort(), ['eslint', 'playwright', 'react', 'typescript', 'vite', 'vitest']);
+  assert.deepEqual(result.e2e.map((item) => item.command), ['npm run e2e']);
   assert.equal(result.techs.find((tech) => tech.id === 'react').version, '19.0.0');
   assert.deepEqual(result.validation.map((item) => item.command), ['npx tsc --noEmit', 'npm run lint', 'npm run test']);
   assert.deepEqual(result.workspaces, []);
@@ -22,6 +23,7 @@ test('an Nx + Expo monorepo: workspaces, app.json evidence, nx validation, exist
   assert.ok(ids(result).includes('expo') && ids(result).includes('nx') && !ids(result).includes('javascript'));
   assert.ok(result.techs.find((tech) => tech.id === 'expo').evidence.includes('"expo" in apps/mobile/app.json'));
   assert.equal(result.validation[0].command, 'npx nx run-many -t typecheck lint test');
+  assert.deepEqual(result.e2e, []);
   assert.equal(result.folders[0].description, 'The phone app');
   assert.deepEqual(result.claude.claudeMd, ['.claude/CLAUDE.md']);
   assert.deepEqual(result.claude.agents, ['architect']);

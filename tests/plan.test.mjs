@@ -53,6 +53,23 @@ test('the existing CLAUDE.md gets one section appended; stack.md has Validation 
   assert.match(file(files, '.claude/hecpack/project-map.md').content, /## apps\/mobile \(@demo\/mobile\)\n\nThe phone app/);
 });
 
+test('the designer comes with a UI stack and the e2e runner with an e2e suite, above lite', () => {
+  const vite = setup('ts-vite', 'standard');
+  const map = JSON.parse(file(vite.files, '.claude/hecpack/context-map.json').content);
+  assert.deepEqual(Object.keys(map.agents), ['hecpack:checker', 'hecpack:architect', 'hecpack:thinker', 'hecpack:designer', 'hecpack:e2e-runner']);
+  assert.equal(map.tags.design, 'design');
+  assert.ok(map.types.e2e.includes('hecpack:core/workflow.md#E2E'));
+  const config = JSON.parse(file(vite.files, '.claude/hecpack/config.json').content);
+  assert.equal(config.agentModels['hecpack:designer'].model, 'opus');
+  assert.match(file(vite.files, '.claude/hecpack/stack.md').content, /## E2E\n\n- `npm run e2e`/);
+  const lite = setup('ts-vite', 'lite');
+  assert.deepEqual(Object.keys(JSON.parse(file(lite.files, '.claude/hecpack/context-map.json').content).agents), ['hecpack:checker']);
+  const nx = setup('nx-expo', 'deep');
+  const nxMap = JSON.parse(file(nx.files, '.claude/hecpack/context-map.json').content);
+  assert.ok('hecpack:designer' in nxMap.agents && !('hecpack:e2e-runner' in nxMap.agents));
+  assert.match(file(nx.files, '.claude/hecpack/stack.md').content, /## E2E\n\n- No e2e suite found\. Worth adding/);
+});
+
 test('deselected techs leave stack.md and config', () => {
   const { files } = setup('ts-vite', 'standard', ['typescript', 'react']);
   const config = JSON.parse(file(files, '.claude/hecpack/config.json').content);

@@ -24,7 +24,7 @@ claude plugin install hecpack@hecpack
 ## What you get after `/hecpack:init`
 
 - **Task triage.** Every code task starts as S (one obvious change) or M (new code, a move, three or more files). M gets an architect analysis before coding; every task gets an architect review after it.
-- **Agents.** `hecpack:architect` (read-only analysis and review), `hecpack:thinker` (root cause when it is unknown or disputed), `hecpack:checker` (runs your typecheck, lint and tests in its own small context and answers in three lines).
+- **Agents.** `hecpack:architect` (read-only analysis and review), `hecpack:thinker` (root cause when it is unknown or disputed), `hecpack:checker` (runs your typecheck, lint and tests in its own small context and answers in three lines). With a UI stack also `hecpack:designer` (design passes on your own design system and docs, or a proposed one when you have none; a new idea shown small first, A and B variants), and with an e2e suite `hecpack:e2e-runner` (runs it in its own context, reports failures in under 30 lines). Without e2e, `stack.md` says what suite would fit and how to turn the runner on.
 - **Rules injected per task.** A hook loads the rules a task needs at the first prompt, again after a compaction, and when an agent starts. A tag in the prompt (`[S]`, `[M]`, `[q]`, `[coord]`) picks the set. Your own rule files ride along: `/init` adds the ones you keep to the same map.
 - **Handoff across compactions** and an optional chain of fresh chats for long tasks.
 - **Model limits per agent**, enforced by a hook.
@@ -72,6 +72,8 @@ hecpack: подход к разработке с Claude Code, который п�
 claude plugin marketplace add Hecmatyar/hecpack
 claude plugin install hecpack@hecpack
 ```
+
+Агенты: architect, thinker, checker всегда; designer, если в стеке есть UI (работает на дизайн-системе и доках проекта, а если их нет, предлагает свои); e2e-runner, если есть e2e-тесты (иначе stack.md подсказывает, какие завести).
 
 Три команды в сессии Claude Code внутри проекта:
 
