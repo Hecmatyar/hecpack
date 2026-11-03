@@ -1,0 +1,20 @@
+{
+  "name": "hecpack",
+  "version": "0.2.0",
+  "description": "A Claude Code workflow kit: task triage, architect and thinker agents, rules injected per task, handoff across compactions. /hecpack:init sets a project up through a short guided choice, /hecpack:preview shows the setup without touching the project, /hecpack:metrics takes before/after snapshots.",
+  "author": {
+    "name": "hecmatyar"
+  },
+  "homepage": "https://github.com/Hecmatyar/hecpack",
+  "repository": "https://github.com/Hecmatyar/hecpack",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "agents",
+    "context",
+    "triage",
+    "code-review",
+    "setup",
+    "metrics"
+  ]
+}

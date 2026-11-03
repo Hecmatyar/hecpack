@@ -1,0 +1,7 @@
+{ "name": "claude-plugins-official", "plugins": [
+  { "name": "expo", "description": "Expo skills for React Native apps." },
+  { "name": "typescript-lsp", "description": "TypeScript language server." },
+  { "name": "vite-helper", "description": "Vite build tips." },
+  { "name": "mailer", "description": "Send email from your React app." },
+  { "name": "go-fast", "description": "Let's go." }
+] }

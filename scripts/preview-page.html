@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hecpack preview</title>
+<style>
+:root {
+  --bg: #f7f6f3; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6a66; --line: #e4e2dc;
+  --accent: #3b5bdb; --accent-soft: #e7ecfd; --add: #e6f4ea; --add-text: #1e6b34; --del: #fbe9e7; --del-text: #a12a1b;
+  --warn: #fff4d6; --warn-text: #7a5600; --chip: #f0efeb; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615; --panel: #1f1f1d; --text: #ecebe7; --muted: #9c9a94; --line: #33322f;
+    --accent: #8ea6ff; --accent-soft: #263055; --add: #17301f; --add-text: #8fd8a5; --del: #3a1d19; --del-text: #f2a497;
+    --warn: #3a3015; --warn-text: #f0d48a; --chip: #2a2a27;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 80px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; }
+h1 small { color: var(--muted); font-weight: 400; font-size: 15px; margin-left: 8px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 12px; }
+.sub { color: var(--muted); margin-top: 4px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.levels { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); }
+.levels button { border: 0; background: none; color: var(--text); padding: 8px 16px; font: inherit; cursor: pointer; }
+.levels button + button { border-left: 1px solid var(--line); }
+.levels button.on { background: var(--accent); color: #fff; }
+.levelinfo { color: var(--muted); margin: 0 0 12px; }
+.warn { background: var(--warn); color: var(--warn-text); border-radius: 8px; padding: 10px 12px; margin: 0 0 8px; }
+table { width: 100%; border-collapse: collapse; }
+td, th { text-align: left; vertical-align: top; padding: 10px 8px; border-top: 1px solid var(--line); }
+th { font-size: 12px; color: var(--muted); font-weight: 500; border-top: 0; }
+.tech { font-weight: 600; white-space: nowrap; }
+.ver, .kind, .evidence { color: var(--muted); font-size: 13px; }
+.evidence { font-family: var(--mono); font-size: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+.chip.pack { background: var(--accent-soft); }
+.chip input { margin: 0; }
+.tag { font-size: 11px; color: var(--muted); }
+.off { opacity: 0.45; }
+.file { border-top: 1px solid var(--line); }
+.file:first-of-type { border-top: 0; }
+.file summary { display: flex; gap: 10px; align-items: baseline; padding: 10px 0; cursor: pointer; list-style: none; flex-wrap: wrap; }
+.file summary::-webkit-details-marker { display: none; }
+.path { font-family: var(--mono); font-size: 13px; }
+.badge { font-size: 11px; border-radius: 6px; padding: 1px 8px; background: var(--chip); }
+.badge.create { background: var(--add); color: var(--add-text); }
+.badge.update { background: var(--accent-soft); color: var(--accent); }
+.counts { font-family: var(--mono); font-size: 12px; }
+.counts .a { color: var(--add-text); } .counts .d { color: var(--del-text); }
+.note { color: var(--muted); font-size: 13px; }
+pre { margin: 0 0 12px; padding: 12px 0; background: var(--bg); border-radius: 8px; overflow-x: auto; font: 12px/1.55 var(--mono); }
+pre span { display: block; padding: 0 12px; white-space: pre; }
+pre .a { background: var(--add); color: var(--add-text); }
+pre .d { background: var(--del); color: var(--del-text); }
+pre .h { color: var(--muted); }
+.cmd { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.scroll { overflow-x: auto; }
+.cmd code { flex: 1; min-width: 0; font: 13px var(--mono); background: var(--bg); padding: 8px 10px; border-radius: 8px; overflow-x: auto; white-space: nowrap; }
+.cmd button { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+.label { font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+.label:first-child { margin-top: 0; }
+@media (max-width: 720px) { .hide-sm { display: none; } td, th { padding: 8px 4px; } .chip { white-space: normal; } }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const REPORT = /*__REPORT__*/null;
+const T = {
+  en: {
+    nothing: 'Nothing in the project was changed. This page shows what /init would set up.',
+    level: 'Level', warnings: 'Before you set it up', techs: 'Found in this project', tech: 'Technology',
+    found: 'Found by', sources: 'Rules and know-how from', validation: 'Validation commands', none: 'none found',
+    files: 'Files /init would write', commands: 'Commands', rerun: 'Preview again with this selection',
+    install: 'Install the plugins you ticked', tryit: 'Try it in a throwaway copy of the project',
+    nothingToInstall: 'Tick a plugin above to get its install command.', copy: 'Copy', copied: 'Copied',
+    planned: 'planned', on: 'on', official: 'official', community: 'community', toWrite: 'to write',
+    docsOff: 'not set up', create: 'create', update: 'update', same: 'no change',
+    lite: 'Lite', standard: 'Standard', deep: 'Deep', existing: 'Claude setup already here',
+    recommended: 'recommended', docs: 'Rules already in this project', docsNote: '/hecpack:init reads these and tells you what to carry over and what conflicts with hecpack; nothing is replaced without your word.',
+    topics: 'touches', optional: 'optional', modules: 'Optional modules',
+    info: {}, warn: {},
+  },
+  ru: {
+    nothing: 'В проекте ничего не изменено. Здесь видно, что настроил бы /init.',
+    level: 'Уровень', warnings: 'Перед установкой', techs: 'Найдено в проекте', tech: 'Технология',
+    found: 'Где найдено', sources: 'Правила и знания из', validation: 'Команды проверки', none: 'не найдены',
+    files: 'Файлы, которые запишет /init', commands: 'Команды', rerun: 'Повторить предпросмотр с этим выбором',
+    install: 'Установить отмеченные плагины', tryit: 'Попробовать на одноразовой копии проекта',
+    nothingToInstall: 'Отметь плагин выше, и здесь появится команда установки.', copy: 'Копировать', copied: 'Скопировано',
+    planned: 'в планах', on: 'включён', official: 'официальный', community: 'сообщество', toWrite: 'напишет /init',
+    docsOff: 'не подключён', create: 'новый', update: 'изменение', same: 'без изменений',
+    lite: 'Лёгкий', standard: 'Стандарт', deep: 'Глубокий', existing: 'Настройка Claude, которая уже есть',
+    recommended: 'рекомендуем', docs: 'Правила, которые уже есть в проекте', docsNote: '/hecpack:init прочитает их и скажет, что перенести, а что конфликтует с hecpack; без вашего слова ничего не заменяется.',
+    topics: 'затрагивает', optional: 'по желанию', modules: 'Дополнительно',
+    info: {
+      lite: 'Правила сессии, триаж, стек и команды проверки; агент checker.',
+      standard: 'Лёгкий плюс цикл архитектора (анализ перед задачей M, ревью после каждой), thinker и карта проекта.',
+      deep: 'Стандарт плюс цепочка чатов, подсессии с координатором и ограничение моделей по агентам.',
+    },
+    warn: {
+      hooks: 'В проекте уже есть свои хуки на старт сессии, промпт и запуск субагента. С hecpack сработают оба набора, и правила могут загрузиться дважды: оставь один источник на каждое правило.',
+      agents: 'В проекте есть свои агенты architect, checker или thinker. У hecpack они называются hecpack:architect, hecpack:thinker, hecpack:checker, и в брифе нужно называть, какой из них имеется в виду.',
+      existing: 'hecpack здесь уже настроен; дифф сравнивает с текущими файлами.',
+    },
+  },
+};
+const t = T[REPORT.lang] || T.en;
+document.documentElement.lang = REPORT.lang;
+const state = {
+  level: REPORT.selection.level,
+  techs: new Set(REPORT.selection.techs),
+  plugins: new Set(REPORT.techs.flatMap((tech) => tech.sources)
+    .filter((s) => s.kind === 'plugin' && s.primary && s.tier === 'official' && !s.enabled).map((s) => s.id)),
+  modules: new Set(),
+};
+const esc = (text) => String(text ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const chip = (source) => {
+  if (source.kind === 'pack') return `<span class="chip pack" title="${esc(source.description)}">${esc(source.label)} <span class="tag">${t.planned}</span></span>`;
+  if (source.kind === 'plugin') {
+    const box = source.enabled ? '' : `<input type="checkbox" data-plugin="${esc(source.id)}" ${state.plugins.has(source.id) ? 'checked' : ''}>`;
+    return `<label class="chip" title="${esc(source.description)}">${box}${esc(source.label)} <span class="tag">${source.enabled ? t.on : t[source.tier]}</span></label>`;
+  }
+  if (source.kind === 'docs') return `<span class="chip">context7${source.enabled ? '' : ` <span class="tag">${t.docsOff}</span>`}</span>`;
+  return `<span class="chip" title="${esc(source.description)}">${esc(source.label)} <span class="tag">${t.toWrite}</span></span>`;
+};
+
+const diffHtml = (diff) => diff.split('\n').filter((line, i, all) => i < all.length - 1 || line).map((line) => {
+  const cls = line.startsWith('+++') || line.startsWith('---') || line.startsWith('@@') ? 'h' : line.startsWith('+') ? 'a' : line.startsWith('-') ? 'd' : '';
+  return `<span class="${cls}">${esc(line) || ' '}</span>`;
+}).join('');
+
+const commands = () => {
+  const all = REPORT.techs.map((tech) => tech.id);
+  const picked = all.filter((id) => state.techs.has(id));
+  const techArg = picked.length === all.length ? '' : ` --techs ${picked.join(',')}`;
+  const moduleArg = state.modules.size ? ` --modules ${[...state.modules].join(',')}` : '';
+  const rerun = `/hecpack:preview --level ${state.level}${techArg}`;
+  const installs = [...state.plugins].map((id) => `claude plugin install ${id}`);
+  return { rerun, installs, tryit: `${rerun} --try`, init: `/hecpack:init --level ${state.level}${techArg}${moduleArg}` };
+};
+
+const cmd = (text) => `<div class="cmd"><code>${esc(text)}</code><button data-copy="${esc(text)}">${t.copy}</button></div>`;
+
+const render = () => {
+  const level = REPORT.levels[state.level];
+  const c = commands();
+  const claude = REPORT.claude;
+  const existing = [
+    ...claude.claudeMd, ...claude.agents.map((a) => `agent ${a}`), ...claude.skills.map((s) => `skill ${s}`),
+    ...claude.hookEvents.map((h) => `hook ${h}`), ...claude.mcp.map((m) => `mcp ${m}`),
+  ];
+  document.getElementById('app').innerHTML = `
+    <header>
+      <div>
+        <h1>${esc(REPORT.project.name)}<small>hecpack ${esc(REPORT.hecpack)} preview</small></h1>
+        <div class="sub">${t.nothing}</div>
+      </div>
+      <div class="levels" role="radiogroup" aria-label="${t.level}">
+        ${['lite', 'standard', 'deep'].map((id) => `<button role="radio" aria-checked="${id === state.level}" class="${id === state.level ? 'on' : ''}" data-level="${id}">${t[id]}${id === REPORT.recommended?.level ? ` <span class="tag">${t.recommended}</span>` : ''}</button>`).join('')}
+      </div>
+    </header>
+    ${REPORT.warnings.length ? `<section><h2>${t.warnings}</h2>${REPORT.warnings.map((w) => `<p class="warn">${esc(t.warn[w.id] ?? w.text)}</p>`).join('')}
+      ${existing.length ? `<div class="label">${t.existing}</div><div class="chips">${existing.map((e) => `<span class="chip">${esc(e)}</span>`).join('')}</div>` : ''}</section>` : ''}
+    <section>
+      <h2>${t.techs}</h2>
+      <div class="scroll"><table>
+        <tr><th></th><th>${t.tech}</th><th class="hide-sm">${t.found}</th><th>${t.sources}</th></tr>
+        ${REPORT.techs.map((tech) => `
+          <tr class="${state.techs.has(tech.id) ? '' : 'off'}">
+            <td><input type="checkbox" data-tech="${esc(tech.id)}" ${state.techs.has(tech.id) ? 'checked' : ''} aria-label="${esc(tech.label)}"></td>
+            <td><div class="tech">${esc(tech.label)}</div><div class="ver">${esc(tech.version ?? '')} <span class="kind">${esc(tech.kind)}</span></div></td>
+            <td class="evidence hide-sm">${tech.evidence.map(esc).join('<br>')}</td>
+            <td><div class="chips">${tech.sources.map(chip).join('')}</div></td>
+          </tr>`).join('')}
+      </table></div>
+    </section>
+    ${REPORT.docs?.length ? `<section>
+      <h2>${t.docs}</h2>
+      <p class="note">${t.docsNote}</p>
+      <div class="scroll"><table>
+        ${REPORT.docs.map((doc) => `<tr><td><span class="path">${esc(doc.path)}</span> <span class="tag">${esc(doc.kind)}, ${doc.lines} ${REPORT.lang === 'ru' ? 'строк' : 'lines'}</span></td>
+          <td class="note">${doc.headings.slice(0, 6).map(esc).join(' · ')}</td>
+          <td><div class="chips">${doc.topics.map((topic) => `<span class="chip">${esc(topic)}</span>`).join('')}</div></td></tr>`).join('')}
+      </table></div>
+    </section>` : ''}
+    <section>
+      <h2>${t.validation}</h2>
+      ${REPORT.validation.length ? REPORT.validation.map((v) => cmd(v.command)).join('') : `<p class="note">${t.none}</p>`}
+    </section>
+    <section>
+      <h2>${t.files}</h2>
+      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}</p>
+      ${level.files.filter((file) => !file.module || state.modules.has(file.module)).map((file) => `
+        <details class="file">
+          <summary><span class="badge ${file.action}">${t[file.action]}</span><span class="path">${esc(file.path)}</span>${file.module ? `<span class="tag">${t.optional}: ${esc(file.module)}</span>` : ''}
+            <span class="counts"><span class="a">+${file.added}</span> <span class="d">-${file.removed}</span></span><span class="note">${esc(file.note)}</span></summary>
+          <pre>${diffHtml(file.diff)}</pre>
+        </details>`).join('')}
+    </section>
+    <section>
+      <h2>${t.modules}</h2>
+      <div class="chips">${Object.entries(REPORT.modules ?? {}).map(([id, m]) => `<label class="chip" title="${esc(m.description)}"><input type="checkbox" data-module="${esc(id)}" ${state.modules.has(id) ? 'checked' : ''}>${esc(m.label)}</label>`).join('')}</div>
+    </section>
+    <section>
+      <h2>${t.commands}</h2>
+      <div class="label">${REPORT.lang === 'ru' ? 'Настроить проект с этим выбором' : 'Set the project up with this selection'}</div>${cmd(c.init)}
+      <div class="label">${t.rerun}</div>${cmd(c.rerun)}
+      <div class="label">${t.install}</div>${c.installs.length ? c.installs.map(cmd).join('') : `<p class="note">${t.nothingToInstall}</p>`}
+      <div class="label">${t.tryit}</div>${cmd(c.tryit)}
+    </section>`;
+};
+
+document.addEventListener('click', (event) => {
+  const level = event.target.closest('[data-level]');
+  if (level) { state.level = level.dataset.level; render(); return; }
+  const copy = event.target.closest('[data-copy]');
+  if (copy) {
+    navigator.clipboard?.writeText(copy.dataset.copy).then(() => { copy.textContent = t.copied; setTimeout(() => { copy.textContent = t.copy; }, 1200); });
+  }
+});
+document.addEventListener('change', (event) => {
+  const { tech, plugin, module } = event.target.dataset;
+  const set = tech ? state.techs : plugin ? state.plugins : module ? state.modules : null;
+  if (!set) return;
+  const id = tech ?? plugin ?? module;
+  if (event.target.checked) set.add(id); else set.delete(id);
+  render();
+});
+render();
+</script>
+</body>
+</html>

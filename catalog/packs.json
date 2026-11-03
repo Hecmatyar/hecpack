@@ -1,0 +1,21 @@
+{
+  "$comment": "hecpack stack packs: rules, agents and checks for one stack on top of the core. status: planned (described here, not published yet) or available (a plugin in the hecpack marketplace).",
+  "packs": [
+    {
+      "id": "expo-ios-hig",
+      "label": "Expo + iOS HIG",
+      "status": "planned",
+      "techs": ["expo", "react-native", "tamagui"],
+      "slots": ["platform", "ui"],
+      "description": "Platform file pairs (.ios.tsx next to the base file), native code behind optional modules, the HIG checklist for every iOS screen, a designer agent, render-performance checklist."
+    },
+    {
+      "id": "nx-monorepo",
+      "label": "Nx monorepo",
+      "status": "planned",
+      "techs": ["nx"],
+      "slots": ["structure", "validation"],
+      "description": "Layered libs with downward imports, an arch-check script for folder and import rules, validation through nx run-many, a safe move script that rewrites imports."
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "hecpack",
+  "description": "hecpack: a Claude Code workflow kit",
+  "owner": {
+    "name": "hecmatyar"
+  },
+  "plugins": [
+    {
+      "name": "hecpack",
+      "source": "./",
+      "description": "Task triage, architect and thinker agents, per-task rule injection, handoff across compactions; /hecpack:init guided setup, /hecpack:preview dry run, /hecpack:metrics before/after."
+    }
+  ]
+}

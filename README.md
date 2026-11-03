@@ -1,0 +1,86 @@
+# hecpack
+
+A development workflow for Claude Code that adapts to your stack. Install it, run one command, pick what you need, and your project gets a disciplined way of working: triage before coding, an architect that reviews, a thinker for unclear bugs, validation in its own small context, rules that load by themselves and survive compactions.
+
+Grown out of the setup of one Expo + Nx app ([Wayfarer](https://github.com/Hecmatyar)); the core is generic, the specifics of your project are generated from what is in the repo.
+
+## Install
+
+```bash
+claude plugin marketplace add Hecmatyar/hecpack
+claude plugin install hecpack@hecpack
+```
+
+`--scope local` keeps the plugin to you and the current project. Nothing changes in a project until you set it up: every hook is silent without `.claude/hecpack/config.json`.
+
+## Three commands
+
+| Command | What it does | Touches the project |
+| --- | --- | --- |
+| `/hecpack:preview` | Reads the stack and opens a local page: technologies found, the recommended level, where the rules for each technology can come from, the rule documents you already have, the diff of every file each level would write, the plugins worth installing. `--try` writes the files into a throwaway clone. | No |
+| `/hecpack:init` | A guided setup: one round of questions (level, technologies, optional modules), a pass over the rule documents you already have (what to carry over, what conflicts and why), the plan with diffs, then the files. | Yes, after your confirmation |
+| `/hecpack:metrics` | A snapshot of the project's shape (files, lines, tests, big files, TODOs) and rhythm (commits, lines and files per commit, fix share, reverts), compared with the previous snapshot. Take one right after `/init` and another after a few weeks. | No (snapshots live in the plugin's data folder) |
+
+## What you get after `/hecpack:init`
+
+- **Task triage.** Every code task starts as S (one obvious change) or M (new code, a move, three or more files). M gets an architect analysis before coding; every task gets an architect review after it.
+- **Agents.** `hecpack:architect` (read-only analysis and review), `hecpack:thinker` (root cause when it is unknown or disputed), `hecpack:checker` (runs your typecheck, lint and tests in its own small context and answers in three lines).
+- **Rules injected per task.** A hook loads the rules a task needs at the first prompt, again after a compaction, and when an agent starts. A tag in the prompt (`[S]`, `[M]`, `[q]`, `[coord]`) picks the set. Your own rule files ride along: `/init` adds the ones you keep to the same map.
+- **Handoff across compactions** and an optional chain of fresh chats for long tasks.
+- **Model limits per agent**, enforced by a hook.
+- **Your project's facts** in `.claude/hecpack/`: `stack.md` (technologies, versions, validation commands, gaps), `project-map.md` (one line per folder), `config.json` (level, language, thresholds, models), `context-map.json` (which rules load for which task and agent). Generated from the repo, yours to edit; a second `/init` keeps what you edited.
+
+### Levels
+
+| Level | What it sets up |
+| --- | --- |
+| lite | Session rules, triage, the stack and validation commands, the checker agent |
+| standard | Lite plus the architect loop, the thinker and the project map |
+| deep | Standard plus the chain of chats, sub-sessions with a coordinator and model limits per agent |
+
+`/init` recommends one from the stack: deep for a monorepo with several workspaces, standard for a project with a real stack and tests, lite otherwise. You can always change `level` in `config.json`.
+
+### Optional modules
+
+- `git-safety`: denies destructive git commands (stash, reset, checkout, clean, restore, rebase, commit, push, pull) in `.claude/settings.json`, so the agent proposes and you run them. Uncommitted changes stay as they are.
+
+### Your existing rules
+
+`/init` and `/preview` find the rule documents already in the project: `CLAUDE.md`, `AGENTS.md`, Cursor and Copilot rules, `.claude/rules`, `.claude/docs`, contributor docs. `/init` reads them and sorts every rule: already covered by hecpack (nothing to do), worth carrying over (kept where it is and loaded with the core, or moved into a short `.claude/hecpack/rules/<topic>.md`), or in conflict with hecpack. Each conflict comes to you as a question with both rules and the trade-off; nothing is replaced without your answer, and nothing of yours is deleted.
+
+## Coexisting with your own setup
+
+If your project already injects its own rules or has agents called `architect`, `thinker` or `checker`, the preview and the init say so: hecpack's agents are namespaced (`hecpack:architect`), but two context hooks would load overlapping rules, so keep one source per rule.
+
+## Development
+
+```bash
+npm test
+claude plugin validate --strict .
+claude --plugin-dir .          # try it in any project, then /hecpack:preview
+```
+
+Node 20 or newer. No dependencies. Layout and rules for contributors: `.claude/CLAUDE.md`; what is next: `ROADMAP.md`.
+
+---
+
+## Коротко по-русски
+
+hecpack: подход к разработке с Claude Code, который подстраивается под стек проекта. Ядро общее (триаж S/M, архитектор до и после кода, thinker для неясных багов, проверки в отдельном агенте, правила подгружаются хуком под задачу и переживают сжатие контекста), а детали проекта собираются из самого репозитория в `.claude/hecpack/`.
+
+Установка:
+
+```bash
+claude plugin marketplace add Hecmatyar/hecpack
+claude plugin install hecpack@hecpack
+```
+
+Три команды в сессии Claude Code внутри проекта:
+
+- `/hecpack:preview`: ничего не меняет. Страница с тем, что нашлось в проекте, рекомендованным уровнем, источниками правил для каждой технологии, вашими существующими правилами и диффом каждого файла. `--try` пишет файлы в одноразовую копию.
+- `/hecpack:init`: короткий выбор (уровень, технологии, модули), разбор ваших CLAUDE.md, AGENTS.md и прочих правил (что перенести, что конфликтует и в чём плюсы и минусы каждой стороны), план с диффами, и только потом файлы.
+- `/hecpack:metrics`: снимок метрик проекта (размер, тесты, большие файлы, TODO, ритм коммитов, доля фиксов) и сравнение с предыдущим снимком. Первый сразу после `/init`, следующий через несколько недель.
+
+## License
+
+MIT
