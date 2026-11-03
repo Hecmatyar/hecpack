@@ -42,10 +42,10 @@ No documents found: say so in one line and go on.
 ## 4. Plan, confirm, write
 
 ```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" --project "${CLAUDE_PROJECT_DIR}" --level <level> --techs <ids> --rules <paths> --lang <ru|en>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" --project "${CLAUDE_PROJECT_DIR}" --level <level> --techs <ids> --rules <paths> --lang <code>
 ```
 
-(`--lang` is the language the user writes in; drop an empty `--techs` or `--rules`.) Show the file list with its actions and the diff of every `update` (CLAUDE.md, an existing generated file). Files marked `kept` were edited since generation: tell the user and offer `--force` only if they want them regenerated. One confirmation (AskUserQuestion, or implied by `--yes`), then the same command with `--write`. Write the rule files from step 3 first, so `--rules` finds them.
+(`--lang` is the code of the language the user writes in, such as `en` or `de`, saved as the reply language in `config.json`; drop an empty `--techs` or `--rules`.) Show the file list with its actions and the diff of every `update` (CLAUDE.md, an existing generated file). Files marked `kept` were edited since generation: tell the user and offer `--force` only if they want them regenerated. One confirmation (AskUserQuestion, or implied by `--yes`), then the same command with `--write`. Write the rule files from step 3 first, so `--rules` finds them.
 
 ## 5. Fill the project map and finish
 

@@ -94,14 +94,13 @@ test('duplicates need a real share of repeated phrases', () => {
 test('the page is written outside the project and the history shows the change', () => {
   const project = setUp();
   const out = scratch();
-  const first = run({ project, out, claudeHome: claudeHome(), lang: 'ru', date: '2026-11-01T10:00:00Z' });
+  const first = run({ project, out, claudeHome: claudeHome(), date: '2026-11-01T10:00:00Z' });
   assert.equal(first.report.previous, undefined);
   const html = readFileSync(first.html, 'utf8');
   assert.ok(!html.includes('/*__REPORT__*/null'));
-  assert.ok(html.includes('"lang":"ru"'));
+  assert.ok(html.includes('<html lang="en">'));
   writeFileSync(join(project, '.claude/rules/always.md'), `# Always\n\n${'More text. '.repeat(200)}\n`);
   const second = run({ project, out, claudeHome: claudeHome(), date: '2026-11-03T10:00:00Z' });
-  assert.equal(second.report.lang, 'ru', 'the language stays from the previous run');
   const before = second.report.previous.readers['main:code'][0];
   assert.ok(second.report.readers.find((reader) => reader.id === 'main:code').mustTok > before);
   const third = run({ project, out, claudeHome: claudeHome(), date: '2026-11-04T10:00:00Z' });

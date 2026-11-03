@@ -1,6 +1,6 @@
 # hecpack: working on the plugin
 
-Russian for what the user reads (replies, task lists, questions); English for everything only agents read and for every file in this repo (code, docs, catalog, README except its Russian quickstart).
+hecpack is for everyone, so everything it ships is in English: code, docs, catalog, README, the pages and the scripts' output. The skills tell the model to retell results in the user's language; nothing in the repo is translated. Replies to the developer working on this repo follow the developer's language.
 
 hecpack is a Claude Code plugin: a generic development workflow (core) plus a project layer generated from each project's stack. Users install it from this repo as a marketplace (`.claude-plugin/marketplace.json`, source `./`). This file is for development only; it lives in `.claude/` because `claude plugin validate` warns about a CLAUDE.md at the plugin root.
 

@@ -21,7 +21,6 @@ test('arguments', () => {
   assert.equal(parseArgs([]).historyDays, 30);
   assert.throws(() => parseArgs(['--history-days', 'month']));
   assert.throws(() => parseArgs(['--marker', 'yesterday']));
-  assert.throws(() => parseArgs(['--lang', 'de']));
 });
 
 test('prices match the longest model id prefix and fall back for cache rates', () => {
@@ -111,7 +110,7 @@ test('the report sums per day and model and splits around the marker', () => {
   assert.equal(report.days.find((row) => row.day === '2026-10-06').models['claude-opus-5-5'].messages, 1);
   assert.equal(report.before.cost, 0.14);
   assert.equal(report.after.days, 3);
-  assert.match(usageText(report, 'ru'), /До hecpack \(4 дн\.\)/);
+  assert.match(usageText(report), /Before hecpack \(4 days\)/);
   assert.match(usageText(usageReport({ messages: [], prices: prices() })), /No Claude Code transcripts/);
 });
 
@@ -122,21 +121,19 @@ test('the marker is the day config.json was added, or nothing without it', () =>
 
 test('the page and report are written outside the project; the second run reads nothing again', () => {
   const out = scratch();
-  const args = { project: '/tmp/demo-project', claudeHome: HOME, out, marker: '2026-10-05', lang: 'ru', historyDays: 0, date: '2026-10-08T00:00:00Z' };
+  const args = { project: '/tmp/demo-project', claudeHome: HOME, out, marker: '2026-10-05', historyDays: 0, date: '2026-10-08T00:00:00Z' };
   const result = usage(args);
   assert.ok(existsSync(result.html));
   assert.ok(existsSync(join(result.dir, 'store.json')));
   assert.equal(result.report.history.firstRun, true);
-  assert.match(summary(result), /Первый подсчёт: вся история/);
+  assert.match(summary(result), /First count: the whole history/);
   const html = readFileSync(result.html, 'utf8');
   assert.ok(html.includes('"marker":"2026-10-05"'));
-  assert.ok(html.includes('"lang":"ru"'));
   assert.ok(!html.includes('/*__REPORT__*/null'));
   assert.equal(JSON.parse(readFileSync(join(result.dir, 'report.json'), 'utf8')).transcripts, 2);
 
-  const again = usage({ ...args, lang: undefined }); // the language stays from the first run
+  const again = usage(args);
   assert.equal(again.stats.read, 0);
-  assert.equal(again.report.lang, 'ru');
   assert.equal(again.report.total.messages, 5);
   assert.throws(() => usage({ project: '/tmp/demo-project', claudeHome: HOME }), /--out is required/);
 });

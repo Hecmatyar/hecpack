@@ -11,13 +11,13 @@ allowed-tools: Bash(node:*)
 One command, no analysis by you:
 
 ```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/usage.mjs" --project "${CLAUDE_PROJECT_DIR}" --out "${CLAUDE_PLUGIN_DATA}/usage" --lang <lang> --open $ARGUMENTS
+node "${CLAUDE_PLUGIN_ROOT}/scripts/usage.mjs" --project "${CLAUDE_PROJECT_DIR}" --out "${CLAUDE_PLUGIN_DATA}/usage" --open $ARGUMENTS
 ```
 
-`<lang>` is `ru` when the user writes in Russian, else `en`. The script reads the project's transcripts under `~/.claude/projects` and keeps what it parsed in a store in the plugin's data folder. The first run in a project counts the last 30 days (`--history-days N`, or `all`); every later run reads only the sessions that changed, and the store keeps the totals of transcripts Claude Code has deleted since (it removes them after a month). A hook at each session start runs the same count in the background, so the page is already current; this command mostly just opens it. Tokens are priced with `catalog/prices.json`.
+The script reads the project's transcripts under `~/.claude/projects` and keeps what it parsed in a store in the plugin's data folder. The first run in a project counts the last 30 days (`--history-days N`, or `all`); every later run reads only the sessions that changed, and the store keeps the totals of transcripts Claude Code has deleted since (it removes them after a month). A hook at each session start runs the same count in the background, so the page is already current; this command mostly just opens it. Tokens are priced with `catalog/prices.json`.
 
 The page has the period filter (7, 30, 90 days, all, before and after hecpack), the models in the legend (click to show one or several, All to reset), cost and tokens per day by model, the cumulative cost with the setup day marked, the before/after tiles and the per-model table. Its path stays the same, so the user can bookmark it and open it without Claude.
 
-Reply with the script's summary lines as they are (they are already in the user's language) and the page path. Add nothing else: no interpretation, no reading of the transcripts. The money is the API list price for the same tokens, a yardstick for subscription users, not an invoice; say so only if the user asks what the figures mean. If the script fails, show its error line and stop.
+Retell the script's summary lines in the user's language, keeping the numbers as they are, and give the page path. Add nothing else: no interpretation, no reading of the transcripts. The money is the API list price for the same tokens, a yardstick for subscription users, not an invoice; say so only if the user asks what the figures mean. If the script fails, show its error line and stop.
 
 `--marker` overrides the setup day (by default the commit that added `.claude/hecpack/config.json`, else that file's date). `--rebuild --history-days <N|all>` starts the count again with another window.

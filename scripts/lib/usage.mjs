@@ -231,28 +231,23 @@ export const usageReport = ({ messages, prices, marker, days }) => {
   };
 };
 
-export const usageText = (report, lang = 'en') => {
-  const ru = lang === 'ru';
+export const usageText = (report) => {
   const money = (value) => `$${(value ?? 0).toFixed(2)}`;
   const k = (value) => (value >= 1e6 ? `${(value / 1e6).toFixed(1)}M` : value >= 1e3 ? `${Math.round(value / 1e3)}k` : String(Math.round(value)));
-  if (!report.total) return ru ? 'Транскриптов Claude Code для этого проекта не найдено.' : 'No Claude Code transcripts found for this project.';
+  if (!report.total) return 'No Claude Code transcripts found for this project.';
   const lines = [
-    ru
-      ? `С ${report.total.from} по ${report.total.to}: токенов ${k(report.total.tokens)}, по ценам API ${money(report.total.cost)}, ответов модели ${report.total.messages}, дней с работой ${report.total.activeDays}.`
-      : `Tokens ${report.total.from}…${report.total.to} (${report.total.activeDays} active days): ${k(report.total.tokens)} tokens, ${money(report.total.cost)} at API prices, ${report.total.messages} model replies.`,
+    `Tokens ${report.total.from}…${report.total.to} (${report.total.activeDays} active days): ${k(report.total.tokens)} tokens, ${money(report.total.cost)} at API prices, ${report.total.messages} model replies.`,
   ];
   for (const row of report.models.slice(0, 6)) {
-    lines.push(ru ? `- ${row.label}: токенов ${k(row.tokens)} (на выходе ${k(row.output)}), ${row.priced ? money(row.cost) : 'цена неизвестна'}` : `- ${row.label}: ${k(row.tokens)} tokens (${k(row.output)} output), ${row.priced ? money(row.cost) : 'no price'}`);
+    lines.push(`- ${row.label}: ${k(row.tokens)} tokens (${k(row.output)} output), ${row.priced ? money(row.cost) : 'no price'}`);
   }
   if (report.before && report.after) {
     lines.push(
-      ru
-        ? `До hecpack (${report.before.days} дн.): ${money(report.before.costPerDay)} и ${k(report.before.tokensPerDay)} токенов в день. После (${report.after.days} дн.): ${money(report.after.costPerDay)} и ${k(report.after.tokensPerDay)} токенов в день.`
-        : `Before hecpack (${report.before.days} days): ${money(report.before.costPerDay)}/day, ${k(report.before.tokensPerDay)} tokens/day. After (${report.after.days} days): ${money(report.after.costPerDay)}/day, ${k(report.after.tokensPerDay)} tokens/day.`,
+      `Before hecpack (${report.before.days} days): ${money(report.before.costPerDay)} and ${k(report.before.tokensPerDay)} tokens a day. After (${report.after.days} days): ${money(report.after.costPerDay)} and ${k(report.after.tokensPerDay)} tokens a day.`,
     );
   } else if (report.marker) {
-    lines.push(ru ? `Отметка hecpack: ${report.marker}; сравнение появится, когда будут данные по обе стороны.` : `hecpack marker: ${report.marker}; the comparison appears once both sides have data.`);
+    lines.push(`hecpack set up on ${report.marker}; the comparison appears once both sides have data.`);
   }
-  if (report.unpriced.length) lines.push(ru ? `Без цены в catalog/prices.json: ${report.unpriced.join(', ')}.` : `No price in catalog/prices.json for: ${report.unpriced.join(', ')}.`);
+  if (report.unpriced.length) lines.push(`No price in catalog/prices.json for: ${report.unpriced.join(', ')}.`);
   return lines.join('\n');
 };

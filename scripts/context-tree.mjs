@@ -4,7 +4,7 @@
 // what it may read by link; the rules that load by path, the docs nobody reaches, the files that repeat
 // each other, and the change since the previous run. Read-only for the project; no model call.
 //
-//   node context-tree.mjs --project <dir> --out <dir> [--lang en|ru] [--open] [--json] [--claude-home <dir>]
+//   node context-tree.mjs --project <dir> --out <dir> [--open] [--json] [--claude-home <dir>]
 
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -26,7 +26,6 @@ export const parseArgs = (argv) => {
       args[key.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = inline ?? argv[++i];
     }
   }
-  if (args.lang && !['en', 'ru'].includes(args.lang)) throw new Error('--lang must be en or ru');
   return args;
 };
 
@@ -58,8 +57,6 @@ export const run = (args) => {
   const dir = storeDir(args.out, root);
   mkdirSync(dir, { recursive: true });
   const tree = contextTree({ root, claudeHome: args.claudeHome, pluginRoot: PLUGIN_ROOT });
-  const config = readJson(join(root, '.claude/hecpack/config.json'));
-  const lang = args.lang ?? readJson(join(dir, 'report.json'))?.lang ?? (config?.language === 'ru' ? 'ru' : 'en');
   const at = (args.date ?? new Date().toISOString()).slice(0, 19);
 
   // One entry per run that changed something, so the page can say what moved since the last change.
@@ -74,7 +71,7 @@ export const run = (args) => {
     writeAtomic(historyFile, JSON.stringify(history.slice(-HISTORY)));
   }
 
-  const report = { ...tree, lang, generatedAt: at, version: pluginVersion(), previous };
+  const report = { ...tree, generatedAt: at, version: pluginVersion(), previous };
   writeAtomic(join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
   const html = join(dir, 'index.html');
   writeAtomic(html, page(report));
@@ -83,8 +80,7 @@ export const run = (args) => {
 };
 
 export const summary = (result) => {
-  const ru = result.report.lang === 'ru';
-  return [treeText(result.report, result.report.lang), ru ? `Страница: ${result.html}` : `Page: ${result.html}`].join('\n');
+  return [treeText(result.report), `Page: ${result.html}`].join('\n');
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -3,7 +3,7 @@
 // the project. Detects the stack, finds sources for each technology, plans the files for every level and
 // writes them, their diffs against the project, report.json and index.html into its own folder.
 //
-//   node preview.mjs --project <dir> --out <dir> [--level lite|standard|deep] [--lang en|ru]
+//   node preview.mjs --project <dir> --out <dir> [--level lite|standard|deep] [--lang <code>]
 //                    [--techs id,id] [--try] [--open]
 //
 // --try also clones the project's committed state (git clone --local) next to the report and writes the

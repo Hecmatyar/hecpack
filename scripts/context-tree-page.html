@@ -139,34 +139,12 @@ const T = {
     hDups: 'Repeated text', nDups: 'Pairs that share 8-word phrases (the percentage is of the smaller file). Keep one copy and link to it.', noDups: 'no notable repeats',
     foot: 'Built by /hecpack:context, no model involved. Run it again after a change to see the difference.',
   },
-  ru: {
-    title: 'Дерево контекста', sub: (d, m) => `Что попадает каждому режиму основной сессии и каждому агенту на старте и что он может прочитать по ссылкам. ${m} Собрано: ${d}; токены — оценка, символы / 4.`,
-    mapOf: (p) => `Карта контекста: ${p}.`, noMap: 'hecpack здесь не настроен: показано то, что Claude Code грузит сам, и собственные агенты проекта.',
-    fInMap: 'Файлов в карте', fInMapN: (a, b, c) => `${a} из ${b} .md в проекте${c ? ` и ${c} из hecpack` : ''}`,
-    fStart: 'На старте', fStartN: (a, b) => `от ${a} до ${b}`,
-    fAll: 'Если открыть всё по ссылкам', fAllN: 'на деле читают малую часть',
-    fReaders: 'Режимов и агентов', fReadersN: (m, a) => `режимов основной сессии: ${m}, агентов: ${a}`,
-    hReaders: 'Режимы и агенты', nReaders: '«На старте» попадает без выбора: файлы самого Claude Code (CLAUDE.md, правила без путей, индекс памяти, списки агентов и навыков), то, что хук hecpack вставляет по тегу запроса или для агента, и собственная инструкция агента. «По ссылкам» — то, на что эти файлы ссылаются; читается, только если задаче это нужно.',
-    lStart: 'на старте', lLink: 'по ссылкам, если открыть всё', lClick: 'нажми строку, чтобы открыть списки',
-    main: 'Основная', tag: 'тег', untagged: 'или без тега', words: 'слова', hookAgent: 'агент, хук hecpack при старте', projectAgent: 'агент проекта, без хука hecpack', builtin: 'встроенный агент, хук hecpack при старте',
-    startList: 'На старте', linkList: 'По ссылкам', worst: (t, n) => `всё достижимое по ссылкам: ${t} в файлах: ${n}`,
-    since: 'с', hookOver: (c, l) => `Хук вставляет здесь ${c} символов, больше своих ${l}: остальное агенту называется, и он читает его сам. Вынесите файл в ссылку или увеличьте parts в context-map.json.`,
-    src: { claude: 'Claude Code', hook: 'хук', agent: 'тело агента', list: 'список' },
-    lists: { '(agent descriptions)': (n) => `список агентов: ${n}`, '(skill descriptions)': (n) => `список навыков: ${n}` },
-    hHeavy: 'Что дороже всего на старте', nHeavy: 'Токены файла, умноженные на число режимов и агентов, которые грузят его на старте. Это первые кандидаты, чтобы сократить, разделить или убрать за ссылку.', readersN: (n) => `× ${n}`,
-    hFiles: 'Файлы', nFiles: 'У каждого файла: вес, режимы и агенты, которые грузят его на старте, и те, кому он доступен по ссылке.', byWeight: 'по весу', byStart: 'по чтению на старте', byLink: 'по ссылкам', lFStart: 'на старте', lFLink: 'по ссылкам', tokens: 'токенов', nobody: 'никто',
-    hRules: 'Правила по путям', nRules: 'Claude Code грузит их сам, когда сессия открывает файл под этими масками: .claude/rules с paths и CLAUDE.md во вложенных папках.', noRules: 'нет',
-    hOrph: 'Никто не читает', nOrph: 'Документы для агентов, которые не грузит ни один режим и ни один агент и на которые никто не ссылается. Удалите их или сошлитесь там, где они нужны.', noOrph: 'нет',
-    hDups: 'Повторы текста', nDups: 'Пары файлов с общими фразами из 8 слов (процент от меньшего файла). Оставьте одну копию и сошлитесь на неё.', noDups: 'заметных повторов нет',
-    foot: 'Собрано командой /hecpack:context, без модели. Запустите снова после правок, чтобы увидеть разницу.',
-  },
 };
-const t = T[D.lang] || T.en;
-document.documentElement.lang = D.lang;
+const t = T.en;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const k = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v));
-const fmtDate = (s) => new Intl.DateTimeFormat(D.lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(s));
+const fmtDate = (s) => new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(s));
 
 const R = D.readers;
 const label = (r) => (r.kind === 'main' ? `${t.main} · ${r.name}` : r.name);

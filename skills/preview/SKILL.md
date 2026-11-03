@@ -16,7 +16,7 @@ A dry run of the hecpack setup. **Never write, move or delete anything in the pr
    node "${CLAUDE_PLUGIN_ROOT}/scripts/preview.mjs" --project "${CLAUDE_PROJECT_DIR}" --out "${CLAUDE_PLUGIN_DATA}/preview" --lang <lang> --open $ARGUMENTS
    ```
 
-   `<lang>` is `ru` when the user writes in Russian, else `en`. Without `--level` the recommended level is chosen. `--try` also clones the project's committed state into the data folder and writes the files of the chosen level there (uncommitted changes and `node_modules` are not in that copy).
+   `<lang>` is the code of the language the user writes in (`en`, `de`, ...); it only sets the reply language in the planned `config.json`, the page itself is in English. Without `--level` the recommended level is chosen. `--try` also clones the project's committed state into the data folder and writes the files of the chosen level there (uncommitted changes and `node_modules` are not in that copy).
 
 2. The script prints a short summary and opens the page. Retell the summary in the user's language in a few lines: the technologies found, the recommended level and why, the files the level would write, the plugins worth installing, the warnings, and the page path (the user can open it again from there).
 

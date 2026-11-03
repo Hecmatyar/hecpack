@@ -3,7 +3,7 @@
 // page with the before/after around the day hecpack was set up. Reads the transcripts Claude Code already
 // keeps under ~/.claude/projects; nothing in the project changes and no model is called.
 //
-//   node usage.mjs --project <dir> --out <dir> [--lang en|ru] [--marker YYYY-MM-DD] [--open] [--json]
+//   node usage.mjs --project <dir> --out <dir> [--marker YYYY-MM-DD] [--open] [--json]
 //                  [--history-days 30|all] [--rebuild] [--quiet] [--claude-home <dir>] [--prices <file>]
 //
 // <out>/<project slug>/ holds store.json (what earlier runs parsed, see lib/usage.mjs), report.json and
@@ -30,7 +30,6 @@ export const parseArgs = (argv) => {
     }
   }
   if (args.marker && !/^\d{4}-\d{2}-\d{2}$/.test(args.marker)) throw new Error('--marker must be a date, YYYY-MM-DD');
-  if (args.lang && !['en', 'ru'].includes(args.lang)) throw new Error('--lang must be en or ru');
   args.historyDays = args.historyDays === 'all' ? 0 : Number(args.historyDays);
   if (!Number.isInteger(args.historyDays) || args.historyDays < 0) throw new Error('--history-days must be a number of days or all');
   return args;
@@ -76,16 +75,12 @@ export const usage = (args) => {
   const files = transcriptFiles(root, args.claudeHome);
   const now = args.date ? Date.parse(args.date) : Date.now();
   const { messages, store, stats } = readMessages(files, earlier, { historyDays: args.historyDays, now, rebuild: args.rebuild });
-  const config = readJson(join(root, '.claude/hecpack/config.json'));
-  const lang = args.lang ?? store.lang ?? (config?.language === 'ru' ? 'ru' : 'en');
-  store.lang = lang;
   writeAtomic(storeFile, JSON.stringify(store));
 
   const marker = args.marker ?? hecpackMarker(root);
   const report = {
     ...usageReport({ messages, prices, marker }),
     root,
-    lang,
     generatedAt: new Date(now).toISOString().slice(0, 19),
     version: pluginVersion(),
     transcripts: stats.files,
@@ -100,16 +95,11 @@ export const usage = (args) => {
 
 export const summary = (result) => {
   const { report, stats } = result;
-  const ru = report.lang === 'ru';
   const from = report.history.from;
   const head = report.history.firstRun
-    ? ru
-      ? `Первый подсчёт: ${from ? `история с ${from}` : 'вся история'}; дальше каждый запуск дочитывает только новые сессии.`
-      : `First count: ${from ? `history from ${from}` : 'the whole history'}; every later run reads only the new sessions.`
-    : ru
-      ? `История с ${from ?? 'начала'}; прочитано заново: ${stats.read} из ${stats.files} транскриптов${stats.gone ? `, ещё ${stats.gone} уже удалены Claude Code, их итоги сохранены` : ''}.`
-      : `History from ${from ?? 'the start'}; read again: ${stats.read} of ${stats.files} transcripts${stats.gone ? `, ${stats.gone} more already deleted by Claude Code, their totals kept` : ''}.`;
-  return [head, usageText(report, report.lang), ru ? `Страница: ${result.html}` : `Page: ${result.html}`].join('\n');
+    ? `First count: ${from ? `history from ${from}` : 'the whole history'}; every later run reads only the new sessions.`
+    : `History from ${from ?? 'the start'}; read again: ${stats.read} of ${stats.files} transcripts${stats.gone ? `, ${stats.gone} more already deleted by Claude Code, their totals kept` : ''}.`;
+  return [head, usageText(report), `Page: ${result.html}`].join('\n');
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

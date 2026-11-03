@@ -88,32 +88,8 @@ const T = {
     topics: 'touches', optional: 'optional', modules: 'Optional modules',
     info: {}, warn: {},
   },
-  ru: {
-    nothing: 'В проекте ничего не изменено. Здесь видно, что настроил бы /init.',
-    level: 'Уровень', warnings: 'Перед установкой', techs: 'Найдено в проекте', tech: 'Технология',
-    found: 'Где найдено', sources: 'Правила и знания из', validation: 'Команды проверки', none: 'не найдены',
-    files: 'Файлы, которые запишет /init', commands: 'Команды', rerun: 'Повторить предпросмотр с этим выбором',
-    install: 'Установить отмеченные плагины', tryit: 'Попробовать на одноразовой копии проекта',
-    nothingToInstall: 'Отметь плагин выше, и здесь появится команда установки.', copy: 'Копировать', copied: 'Скопировано',
-    planned: 'в планах', on: 'включён', official: 'официальный', community: 'сообщество', toWrite: 'напишет /init',
-    docsOff: 'не подключён', create: 'новый', update: 'изменение', same: 'без изменений',
-    lite: 'Лёгкий', standard: 'Стандарт', deep: 'Глубокий', existing: 'Настройка Claude, которая уже есть',
-    recommended: 'рекомендуем', docs: 'Правила, которые уже есть в проекте', docsNote: '/hecpack:init прочитает их и скажет, что перенести, а что конфликтует с hecpack; без вашего слова ничего не заменяется.',
-    topics: 'затрагивает', optional: 'по желанию', modules: 'Дополнительно',
-    info: {
-      lite: 'Правила сессии, триаж, стек и команды проверки; агент checker.',
-      standard: 'Лёгкий плюс цикл архитектора (анализ перед задачей M, ревью после каждой), thinker и карта проекта; designer, если в стеке есть UI, e2e-runner, если есть e2e-тесты.',
-      deep: 'Стандарт плюс цепочка чатов, подсессии с координатором и ограничение моделей по агентам.',
-    },
-    warn: {
-      hooks: 'В проекте уже есть свои хуки на старт сессии, промпт и запуск субагента. С hecpack сработают оба набора, и правила могут загрузиться дважды: оставь один источник на каждое правило.',
-      agents: 'В проекте есть свои агенты architect, checker или thinker. У hecpack они называются hecpack:architect, hecpack:thinker, hecpack:checker, и в брифе нужно называть, какой из них имеется в виду.',
-      existing: 'hecpack здесь уже настроен; дифф сравнивает с текущими файлами.',
-    },
-  },
 };
-const t = T[REPORT.lang] || T.en;
-document.documentElement.lang = REPORT.lang;
+const t = T.en;
 const state = {
   level: REPORT.selection.level,
   techs: new Set(REPORT.selection.techs),
@@ -187,7 +163,7 @@ const render = () => {
       <h2>${t.docs}</h2>
       <p class="note">${t.docsNote}</p>
       <div class="scroll"><table>
-        ${REPORT.docs.map((doc) => `<tr><td><span class="path">${esc(doc.path)}</span> <span class="tag">${esc(doc.kind)}, ${doc.lines} ${REPORT.lang === 'ru' ? 'строк' : 'lines'}</span></td>
+        ${REPORT.docs.map((doc) => `<tr><td><span class="path">${esc(doc.path)}</span> <span class="tag">${esc(doc.kind)}, ${doc.lines} lines</span></td>
           <td class="note">${doc.headings.slice(0, 6).map(esc).join(' · ')}</td>
           <td><div class="chips">${doc.topics.map((topic) => `<span class="chip">${esc(topic)}</span>`).join('')}</div></td></tr>`).join('')}
       </table></div>
@@ -198,7 +174,7 @@ const render = () => {
     </section>
     <section>
       <h2>${t.files}</h2>
-      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}<br><span class="tag">${REPORT.lang === 'ru' ? 'Агенты' : 'Agents'}: ${(level.agents ?? []).map(esc).join(', ')}</span></p>
+      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}<br><span class="tag">Agents: ${(level.agents ?? []).map(esc).join(', ')}</span></p>
       ${level.files.filter((file) => !file.module || state.modules.has(file.module)).map((file) => `
         <details class="file">
           <summary><span class="badge ${file.action}">${t[file.action]}</span><span class="path">${esc(file.path)}</span>${file.module ? `<span class="tag">${t.optional}: ${esc(file.module)}</span>` : ''}
@@ -212,7 +188,7 @@ const render = () => {
     </section>` : ''}
     <section>
       <h2>${t.commands}</h2>
-      <div class="label">${REPORT.lang === 'ru' ? 'Настроить проект с этим выбором' : 'Set the project up with this selection'}</div>${cmd(c.init)}
+      <div class="label">Set the project up with this selection</div>${cmd(c.init)}
       <div class="label">${t.rerun}</div>${cmd(c.rerun)}
       <div class="label">${t.install}</div>${c.installs.length ? c.installs.map(cmd).join('') : `<p class="note">${t.nothingToInstall}</p>`}
       <div class="label">${t.tryit}</div>${cmd(c.tryit)}

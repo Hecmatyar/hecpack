@@ -3,7 +3,7 @@
 // action and diff), so the skill can show it and ask; with --write it writes the files.
 //
 //   node init.mjs --project <dir> --level lite|standard|deep [--techs id,id] [--rules path,path]
-//                 [--modules id,id] [--lang en|ru] [--write] [--force] [--json]
+//                 [--modules id,id] [--lang <code>] [--write] [--force] [--json]
 //
 // Writing rules: a new file is created; CLAUDE.md gets its hecpack section added or replaced and nothing
 // else in it changes; a generated file (.claude/hecpack/*) that exists with other content is kept unless

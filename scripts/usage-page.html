@@ -107,24 +107,9 @@ const T = {
     unpriced: 'No price in catalog/prices.json for', empty: 'No Claude Code transcripts for this project yet.',
     emptyRange: 'No usage in this period.', transcripts: 'transcripts', historyFrom: 'history from', historyAll: 'whole history', gone: 'deleted by Claude Code, totals kept', generated: 'generated', yardstick: 'Subscription plans do not bill per token: the money is a yardstick, not an invoice.',
   },
-  ru: {
-    title: 'Расход Claude Code', of: 'в', prices: 'цены API на', marker: 'hecpack настроен', noMarker: 'дата настройки hecpack неизвестна (в проекте нет .claude/hecpack/config.json)',
-    range: 'Период', r7: '7 дней', r30: '30 дней', r90: '90 дней', rall: 'Всё', rbefore: 'До hecpack', rafter: 'После hecpack',
-    models: 'Модели', all: 'Все', other: 'Прочие',
-    cost: 'Стоимость', tokens: 'Токены', output: 'Токены на выходе', replies: 'Ответов модели', activeDays: 'Дней с работой', perDay: 'в день', perReply: 'на ответ',
-    costChart: 'Стоимость по дням', costHint: 'Сколько та же работа стоила бы по ценам API, по моделям.',
-    tokChart: 'Токены по дням', tokHint: 'Вход, запись кэша, чтение кэша и выход вместе, по моделям.',
-    cumChart: 'Накопленная стоимость', cumHint: 'Нарастающий итог за период; пунктир — день настройки hecpack.',
-    table: 'По моделям', model: 'Модель', input: 'Вход', cacheWrite: 'Запись кэша', cacheRead: 'Чтение кэша', share: 'Доля', noPrice: 'цены нет',
-    compare: 'До и после hecpack', before: 'До', after: 'После', days: 'дн.', outPerReply: 'выход на ответ', repliesPerDay: 'ответов в день',
-    oneSide: 'Сравнение появится, когда будет расход по обе стороны от даты настройки.',
-    unpriced: 'Нет цены в catalog/prices.json для', empty: 'Транскриптов Claude Code для этого проекта пока нет.',
-    emptyRange: 'За этот период расхода нет.', transcripts: 'транскриптов', historyFrom: 'история с', historyAll: 'вся история', gone: 'удалены Claude Code, итоги сохранены', generated: 'собрано', yardstick: 'Подписка не тарифицируется по токенам: деньги здесь — мерка, а не счёт.',
-  },
 };
-const t = T[REPORT.lang] || T.en;
-const locale = REPORT.lang === 'ru' ? 'ru-RU' : 'en-US';
-document.documentElement.lang = REPORT.lang;
+const t = T.en;
+const locale = 'en-US';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const money = (v) => `$${(v ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

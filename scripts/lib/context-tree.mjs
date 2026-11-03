@@ -465,24 +465,18 @@ export const contextTree = ({ root, claudeHome, pluginRoot }) => {
 
 const k = (value) => (value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value));
 
-export const treeText = (tree, lang = 'en') => {
-  const ru = lang === 'ru';
-  const label = (reader) => (reader.kind === 'main' ? `${ru ? 'основная' : 'main'} · ${reader.name}` : reader.name);
-  const lines = [
-    ru
-      ? `Файлов проекта в карте: ${tree.stats.inMapProject} из ${tree.stats.projectFiles} .md, файлов hecpack: ${tree.stats.inMapPlugin}. Токены — оценка, символы / 4.`
-      : `Project files in the map: ${tree.stats.inMapProject} of ${tree.stats.projectFiles} .md, hecpack files: ${tree.stats.inMapPlugin}. Tokens are an estimate, characters / 4.`,
-  ];
+export const treeText = (tree) => {
+  const label = (reader) => (reader.kind === 'main' ? `main · ${reader.name}` : reader.name);
+  const lines = [`Project files in the map: ${tree.stats.inMapProject} of ${tree.stats.projectFiles} .md, hecpack files: ${tree.stats.inMapPlugin}. Tokens are an estimate, characters / 4.`];
   for (const reader of tree.readers) {
-    lines.push(`- ${label(reader)}: ${k(reader.mustTok)} ${ru ? 'на старте' : 'at start'} + ${k(reader.optionalTok)} ${ru ? 'по ссылкам' : 'by link'}${reader.hook?.over ? (ru ? ' (хуку не хватает частей)' : ' (over the hook parts)') : ''}`);
+    lines.push(`- ${label(reader)}: ${k(reader.mustTok)} at start + ${k(reader.optionalTok)} by link${reader.hook?.over ? ' (over the hook parts)' : ''}`);
   }
-  if (!tree.hecpack) lines.push(ru ? 'hecpack здесь не настроен: показано то, что Claude Code грузит сам.' : 'hecpack is not set up here: this is what Claude Code loads by itself.');
-  if (tree.orphans.length) lines.push(ru ? `Никто не читает: ${tree.orphans.length} (${tree.orphans.slice(0, 3).map((row) => row.p).join(', ')}${tree.orphans.length > 3 ? '…' : ''}).` : `Read by nobody: ${tree.orphans.length} (${tree.orphans.slice(0, 3).map((row) => row.p).join(', ')}${tree.orphans.length > 3 ? '…' : ''}).`);
+  if (!tree.hecpack) lines.push('hecpack is not set up here: this is what Claude Code loads by itself.');
+  if (tree.orphans.length) lines.push(`Read by nobody: ${tree.orphans.length} (${tree.orphans.slice(0, 3).map((row) => row.p).join(', ')}${tree.orphans.length > 3 ? '…' : ''}).`);
   if (tree.duplicates.length) {
     const top = tree.duplicates[0];
-    lines.push(ru ? `Больше всего повторов: ${top.a} и ${top.b} (${top.pct}% общих фраз).` : `Most repeated: ${top.a} and ${top.b} (${top.pct}% shared phrases).`);
+    lines.push(`Most repeated: ${top.a} and ${top.b} (${top.pct}% shared phrases).`);
   }
-  if (tree.missing.length) lines.push(ru ? `В карте контекста нет файла или раздела: ${tree.missing.map((row) => row.p).join(', ')}.` : `Missing from the context map: ${tree.missing.map((row) => row.p).join(', ')}.`);
+  if (tree.missing.length) lines.push(`Missing from the context map: ${tree.missing.map((row) => row.p).join(', ')}.`);
   return lines.join('\n');
 };
-
