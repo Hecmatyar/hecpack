@@ -1,39 +1,43 @@
 #!/usr/bin/env node
 // /hecpack:usage: tokens and money spent by Claude Code in one project, per model and per day, on a local
 // page with the before/after around the day hecpack was set up. Reads the transcripts Claude Code already
-// keeps under ~/.claude/projects, so nothing is collected during work and nothing in the project changes.
+// keeps under ~/.claude/projects; nothing in the project changes and no model is called.
 //
 //   node usage.mjs --project <dir> --out <dir> [--lang en|ru] [--marker YYYY-MM-DD] [--open] [--json]
-//                  [--claude-home <dir>] [--prices <file>] [--no-cache]
+//                  [--history-days 30|all] [--rebuild] [--quiet] [--claude-home <dir>] [--prices <file>]
 //
-// The page and report.json go to <out>/<project slug>/; cache.json there holds the parsed transcripts, so
-// a later run reads only the files that changed.
+// <out>/<project slug>/ holds store.json (what earlier runs parsed, see lib/usage.mjs), report.json and
+// index.html. The first run for a project counts the last --history-days (30 by default); every later run
+// reads only the transcripts that changed and keeps the ones Claude Code has deleted since. The SessionStart
+// hook (hooks/usage-sync.mjs) runs this with --quiet in the background, so the page is current when opened.
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PLUGIN_ROOT, pluginVersion } from './lib/setup.mjs';
 import { hecpackMarker, readMessages, transcriptFiles, usageReport, usageText } from './lib/usage.mjs';
 
 export const parseArgs = (argv) => {
-  const args = { lang: 'en', open: false, json: false, cache: true };
+  const args = { open: false, json: false, rebuild: false, quiet: false, historyDays: 30 };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--open' || arg === '--json') args[arg.slice(2)] = true;
-    else if (arg === '--no-cache') args.cache = false;
+    if (['--open', '--json', '--rebuild', '--quiet'].includes(arg)) args[arg.slice(2)] = true;
     else if (arg.startsWith('--')) {
       const [key, inline] = arg.slice(2).split('=');
       args[key.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = inline ?? argv[++i];
     }
   }
   if (args.marker && !/^\d{4}-\d{2}-\d{2}$/.test(args.marker)) throw new Error('--marker must be a date, YYYY-MM-DD');
-  if (!['en', 'ru'].includes(args.lang)) throw new Error('--lang must be en or ru');
+  if (args.lang && !['en', 'ru'].includes(args.lang)) throw new Error('--lang must be en or ru');
+  args.historyDays = args.historyDays === 'all' ? 0 : Number(args.historyDays);
+  if (!Number.isInteger(args.historyDays) || args.historyDays < 0) throw new Error('--history-days must be a number of days or all');
   return args;
 };
 
-const slugOf = (root) => `${basename(root)}-${createHash('sha1').update(root).digest('hex').slice(0, 6)}`;
+export const slugOf = (root) => `${basename(root)}-${createHash('sha1').update(root).digest('hex').slice(0, 6)}`;
+export const storeDir = (out, root) => join(resolve(out), slugOf(resolve(root)));
 
 const readJson = (file) => {
   try {
@@ -41,6 +45,13 @@ const readJson = (file) => {
   } catch {
     return undefined;
   }
+};
+
+// Two sessions may start at once: write a temp file and rename it, so a reader never sees half a file.
+const writeAtomic = (file, text) => {
+  const temp = `${file}.${process.pid}.tmp`;
+  writeFileSync(temp, text);
+  renameSync(temp, file);
 };
 
 // The page reads the report from an inline script; `</` would close it early.
@@ -55,47 +66,61 @@ const openFile = (file) => {
 export const usage = (args) => {
   const root = resolve(args.project ?? process.cwd());
   if (!args.out) throw new Error('--out is required');
-  const dir = join(resolve(args.out), slugOf(root));
+  const dir = storeDir(args.out, root);
   mkdirSync(dir, { recursive: true });
   const prices = readJson(args.prices ?? join(PLUGIN_ROOT, 'catalog/prices.json'));
   if (!prices?.models) throw new Error('prices file not readable');
 
+  const storeFile = join(dir, 'store.json');
+  const earlier = readJson(storeFile);
   const files = transcriptFiles(root, args.claudeHome);
-  const cacheFile = join(dir, 'cache.json');
-  const { messages, cache } = readMessages(files, args.cache ? readJson(cacheFile) : undefined);
-  writeFileSync(cacheFile, JSON.stringify(cache));
+  const now = args.date ? Date.parse(args.date) : Date.now();
+  const { messages, store, stats } = readMessages(files, earlier, { historyDays: args.historyDays, now, rebuild: args.rebuild });
+  const config = readJson(join(root, '.claude/hecpack/config.json'));
+  const lang = args.lang ?? store.lang ?? (config?.language === 'ru' ? 'ru' : 'en');
+  store.lang = lang;
+  writeAtomic(storeFile, JSON.stringify(store));
 
   const marker = args.marker ?? hecpackMarker(root);
   const report = {
     ...usageReport({ messages, prices, marker }),
     root,
-    lang: args.lang,
-    generatedAt: (args.date ?? new Date().toISOString()).slice(0, 19),
+    lang,
+    generatedAt: new Date(now).toISOString().slice(0, 19),
     version: pluginVersion(),
-    transcripts: files.length,
+    transcripts: stats.files,
+    history: { from: store.from, firstRun: stats.firstRun, read: stats.read, gone: stats.gone, createdAt: store.createdAt },
   };
-  writeFileSync(join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
+  writeAtomic(join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
   const html = join(dir, 'index.html');
-  writeFileSync(html, page(report));
+  writeAtomic(html, page(report));
   if (args.open) openFile(html);
-  return { report, dir, html, files: files.length };
+  return { report, dir, html, stats };
 };
 
 export const summary = (result) => {
-  const ru = result.report.lang === 'ru';
-  return [
-    usageText(result.report, result.report.lang),
-    ru ? `Транскриптов: ${result.files}. Страница: ${result.html}` : `Transcripts: ${result.files}. Page: ${result.html}`,
-  ].join('\n');
+  const { report, stats } = result;
+  const ru = report.lang === 'ru';
+  const from = report.history.from;
+  const head = report.history.firstRun
+    ? ru
+      ? `Первый подсчёт: ${from ? `история с ${from}` : 'вся история'}; дальше каждый запуск дочитывает только новые сессии.`
+      : `First count: ${from ? `history from ${from}` : 'the whole history'}; every later run reads only the new sessions.`
+    : ru
+      ? `История с ${from ?? 'начала'}; прочитано заново: ${stats.read} из ${stats.files} транскриптов${stats.gone ? `, ещё ${stats.gone} уже удалены Claude Code, их итоги сохранены` : ''}.`
+      : `History from ${from ?? 'the start'}; read again: ${stats.read} of ${stats.files} transcripts${stats.gone ? `, ${stats.gone} more already deleted by Claude Code, their totals kept` : ''}.`;
+  return [head, usageText(report, report.lang), ru ? `Страница: ${result.html}` : `Page: ${result.html}`].join('\n');
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = parseArgs(process.argv.slice(2));
     const result = usage(args);
-    console.log(args.json ? JSON.stringify(result.report, null, 2) : summary(result));
+    if (!args.quiet) console.log(args.json ? JSON.stringify(result.report, null, 2) : summary(result));
   } catch (error) {
-    console.error(`hecpack usage: ${error.message}`);
-    process.exit(1);
+    if (!process.argv.includes('--quiet')) {
+      console.error(`hecpack usage: ${error.message}`);
+      process.exit(1);
+    }
   }
 }

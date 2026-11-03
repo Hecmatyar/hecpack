@@ -71,7 +71,8 @@ export const readTranscript = (file) => {
     } catch {
       continue;
     }
-    if (entry.type !== 'assistant' || !entry.message?.usage) continue;
+    // Claude Code writes its own notices (an interrupted turn, an API error) as model `<synthetic>`.
+    if (entry.type !== 'assistant' || !entry.message?.usage || entry.message.model === '<synthetic>') continue;
     const id = entry.message.id ?? entry.requestId ?? entry.uuid;
     if (!id || seen.has(id)) continue;
     seen.add(id);
@@ -89,13 +90,28 @@ export const readTranscript = (file) => {
   return out.filter((message) => /^\d{4}-\d{2}-\d{2}$/.test(message.day));
 };
 
-// One record per assistant message across the files. With a cache (the object the previous run returned
-// as `cache`), a file whose size and mtime did not change is not read again, so opening the page later
-// costs only the new or changed transcripts.
-export const readMessages = (files, cache) => {
-  const next = { version: 1, files: {} };
-  const seen = new Set();
-  const out = [];
+// The usage store: what earlier runs parsed, kept per transcript with its size and mtime. A file that did
+// not change is not read again, so a run after the first reads only the sessions since. The store also keeps
+// the records of transcripts Claude Code has since removed (it deletes them after `cleanupPeriodDays`, 30 by
+// default), so the history outlives them. `from` is the first day the store counts: a new store starts
+// `historyDays` back (30 by default; 0 for all the transcripts there are), and every run after keeps it.
+// `rebuild` starts the store again with a new window; the records of deleted transcripts stay, as far as
+// the window reaches, since they cannot be read again.
+export const STORE_VERSION = 2;
+
+const dayOf = (ms) => new Date(ms).toISOString().slice(0, 10);
+
+// Records are stored as tuples, which keeps a busy month's store at a few megabytes.
+const pack = (r) => [r.id, r.day, r.model, r.input, r.cacheWrite, r.cacheRead, r.output];
+const unpack = ([id, day, model, input, cacheWrite, cacheRead, output]) => ({ id, day, model, input, cacheWrite, cacheRead, output });
+
+export const readMessages = (files, store, { historyDays = 30, now = Date.now(), rebuild = false } = {}) => {
+  const known = store?.version === STORE_VERSION ? store : undefined;
+  const fresh = !known || rebuild;
+  const from = fresh ? (historyDays > 0 ? dayOf(now - (historyDays - 1) * 86400000) : undefined) : known.from;
+  const next = { version: STORE_VERSION, from, createdAt: known?.createdAt ?? new Date(now).toISOString(), updatedAt: new Date(now).toISOString(), lang: known?.lang, files: {} };
+  let read = 0;
+  const current = new Set();
   for (const file of files) {
     let stat;
     try {
@@ -103,17 +119,35 @@ export const readMessages = (files, cache) => {
     } catch {
       continue;
     }
-    const known = cache?.version === 1 ? cache.files?.[file] : undefined;
-    const records = known && known.size === stat.size && known.mtimeMs === stat.mtimeMs ? known.records : readTranscript(file);
+    current.add(file);
+    const entry = fresh ? undefined : known.files?.[file];
+    let records;
+    if (entry && !entry.gone && entry.size === stat.size && entry.mtimeMs === stat.mtimeMs) records = entry.records.map(unpack);
+    else if (from && dayOf(stat.mtimeMs) < from) records = []; // last written before the window: nothing in it counts
+    else {
+      records = readTranscript(file).filter((record) => !from || record.day >= from);
+      read += 1;
+    }
     next.files[file] = { size: stat.size, mtimeMs: stat.mtimeMs, records };
-    for (const record of records) {
-      if (seen.has(record.id)) continue;
-      seen.add(record.id);
-      out.push(record);
+  }
+  for (const entry of Object.values(next.files)) entry.records = entry.records.map(pack);
+  for (const [file, entry] of Object.entries(known?.files ?? {})) {
+    if (current.has(file)) continue;
+    const records = entry.records.filter((record) => !from || record[1] >= from);
+    if (records.length) next.files[file] = { ...entry, records, gone: true };
+  }
+  const seen = new Set();
+  const messages = [];
+  for (const entry of Object.values(next.files)) {
+    for (const tuple of entry.records) {
+      if (seen.has(tuple[0])) continue;
+      seen.add(tuple[0]);
+      messages.push(unpack(tuple));
     }
   }
-  out.sort((a, b) => a.day.localeCompare(b.day));
-  return { messages: out, cache: next };
+  messages.sort((a, b) => a.day.localeCompare(b.day));
+  const gone = Object.values(next.files).filter((entry) => entry.gone).length;
+  return { messages, store: next, stats: { firstRun: fresh, from, read, files: current.size, gone } };
 };
 
 // The day hecpack was set up in the project: the commit that added .claude/hecpack/config.json, else the
@@ -204,16 +238,16 @@ export const usageText = (report, lang = 'en') => {
   if (!report.total) return ru ? 'Транскриптов Claude Code для этого проекта не найдено.' : 'No Claude Code transcripts found for this project.';
   const lines = [
     ru
-      ? `Токены ${report.total.from}…${report.total.to} (${report.total.activeDays} дней с работой): ${k(report.total.tokens)} токенов, ${money(report.total.cost)} по ценам API, ${report.total.messages} ответов модели.`
+      ? `С ${report.total.from} по ${report.total.to}: токенов ${k(report.total.tokens)}, по ценам API ${money(report.total.cost)}, ответов модели ${report.total.messages}, дней с работой ${report.total.activeDays}.`
       : `Tokens ${report.total.from}…${report.total.to} (${report.total.activeDays} active days): ${k(report.total.tokens)} tokens, ${money(report.total.cost)} at API prices, ${report.total.messages} model replies.`,
   ];
   for (const row of report.models.slice(0, 6)) {
-    lines.push(`- ${row.label}: ${k(row.tokens)} ${ru ? 'токенов' : 'tokens'} (${k(row.output)} ${ru ? 'на выходе' : 'output'}), ${row.priced ? money(row.cost) : ru ? 'цена неизвестна' : 'no price'}`);
+    lines.push(ru ? `- ${row.label}: токенов ${k(row.tokens)} (на выходе ${k(row.output)}), ${row.priced ? money(row.cost) : 'цена неизвестна'}` : `- ${row.label}: ${k(row.tokens)} tokens (${k(row.output)} output), ${row.priced ? money(row.cost) : 'no price'}`);
   }
   if (report.before && report.after) {
     lines.push(
       ru
-        ? `До hecpack (${report.before.days} дн.): ${money(report.before.costPerDay)}/день, ${k(report.before.tokensPerDay)} токенов/день. После (${report.after.days} дн.): ${money(report.after.costPerDay)}/день, ${k(report.after.tokensPerDay)} токенов/день.`
+        ? `До hecpack (${report.before.days} дн.): ${money(report.before.costPerDay)} и ${k(report.before.tokensPerDay)} токенов в день. После (${report.after.days} дн.): ${money(report.after.costPerDay)} и ${k(report.after.tokensPerDay)} токенов в день.`
         : `Before hecpack (${report.before.days} days): ${money(report.before.costPerDay)}/day, ${k(report.before.tokensPerDay)} tokens/day. After (${report.after.days} days): ${money(report.after.costPerDay)}/day, ${k(report.after.tokensPerDay)} tokens/day.`,
     );
   } else if (report.marker) {

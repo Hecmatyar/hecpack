@@ -105,7 +105,7 @@ const T = {
     compare: 'Before and after hecpack', before: 'Before', after: 'After', days: 'days', outPerReply: 'output per reply', repliesPerDay: 'replies per day',
     oneSide: 'The comparison appears once there is usage on both sides of the setup date.',
     unpriced: 'No price in catalog/prices.json for', empty: 'No Claude Code transcripts for this project yet.',
-    emptyRange: 'No usage in this period.', transcripts: 'transcripts', generated: 'generated', yardstick: 'Subscription plans do not bill per token: the money is a yardstick, not an invoice.',
+    emptyRange: 'No usage in this period.', transcripts: 'transcripts', historyFrom: 'history from', historyAll: 'whole history', gone: 'deleted by Claude Code, totals kept', generated: 'generated', yardstick: 'Subscription plans do not bill per token: the money is a yardstick, not an invoice.',
   },
   ru: {
     title: 'Расход Claude Code', of: 'в', prices: 'цены API на', marker: 'hecpack настроен', noMarker: 'дата настройки hecpack неизвестна (в проекте нет .claude/hecpack/config.json)',
@@ -119,7 +119,7 @@ const T = {
     compare: 'До и после hecpack', before: 'До', after: 'После', days: 'дн.', outPerReply: 'выход на ответ', repliesPerDay: 'ответов в день',
     oneSide: 'Сравнение появится, когда будет расход по обе стороны от даты настройки.',
     unpriced: 'Нет цены в catalog/prices.json для', empty: 'Транскриптов Claude Code для этого проекта пока нет.',
-    emptyRange: 'За этот период расхода нет.', transcripts: 'транскриптов', generated: 'собрано', yardstick: 'Подписка не тарифицируется по токенам: деньги здесь — мерка, а не счёт.',
+    emptyRange: 'За этот период расхода нет.', transcripts: 'транскриптов', historyFrom: 'история с', historyAll: 'вся история', gone: 'удалены Claude Code, итоги сохранены', generated: 'собрано', yardstick: 'Подписка не тарифицируется по токенам: деньги здесь — мерка, а не счёт.',
   },
 };
 const t = T[REPORT.lang] || T.en;
@@ -321,7 +321,8 @@ const chart = (id, title, hint, svg) => `<div class="chart"><h3>${esc(title)}</h
 const render = () => {
   W = Math.max(320, document.querySelector('main').clientWidth - 42);
   document.getElementById('title').innerHTML = `${esc(t.title)} <small>${esc(t.of)} ${esc(REPORT.root.split('/').pop())}</small>`;
-  document.getElementById('sub').innerHTML = `<code>${esc(REPORT.root)}</code> · ${REPORT.transcripts} ${esc(t.transcripts)} · ${esc(t.prices)} ${esc(REPORT.pricesAsOf)} · ${REPORT.marker ? `${esc(t.marker)} ${esc(fmtDayLong(REPORT.marker))}` : esc(t.noMarker)} · ${esc(t.generated)} ${esc(REPORT.generatedAt.replace('T', ' '))}`;
+  const h = REPORT.history ?? {};
+  document.getElementById('sub').innerHTML = `<code>${esc(REPORT.root)}</code> · ${h.from ? `${esc(t.historyFrom)} ${esc(fmtDayLong(h.from))}` : esc(t.historyAll)} · ${esc(t.transcripts)}: ${REPORT.transcripts}${h.gone ? ` (+${h.gone} ${esc(t.gone)})` : ''} · ${esc(t.prices)} ${esc(REPORT.pricesAsOf)} · ${REPORT.marker ? `${esc(t.marker)} ${esc(fmtDayLong(REPORT.marker))}` : esc(t.noMarker)} · ${esc(t.generated)} ${esc(REPORT.generatedAt.replace('T', ' '))}`;
   const app = document.getElementById('app');
   if (!REPORT.total) {
     app.innerHTML = `<section><div class="empty">${esc(t.empty)}</div></section>`;

@@ -77,6 +77,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/usage-sync.mjs\" --out \"${CLAUDE_PLUGIN_DATA}/usage\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PreToolUse": [
