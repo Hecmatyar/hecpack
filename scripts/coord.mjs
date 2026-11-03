@@ -7,7 +7,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, join, resolve, sep } from 'node:path';
+import { basename, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const parseArgs = (argv) => {
@@ -67,15 +67,16 @@ export const coord = ({ project, claudeBin = 'claude', now = Date.now() }) => {
     .map((name) => {
       const piece = name.slice(0, -3);
       const brief = join(dir, name);
-      const reportFile = join(dir, `${piece}.report.md`);
-      const report = existsSync(reportFile) ? readFileSync(reportFile, 'utf8') : undefined;
       const session = sessions.find((item) => item.name === piece || basename(item.cwd) === piece || (item.name ?? '').endsWith(`-${piece}`));
       const worktree = worktrees.find((tree) => basename(tree.path) === piece || tree.branch?.endsWith(piece));
+      // The report belongs in this checkout; a piece that wrote it inside its worktree is found there too.
+      const reportFile = [join(dir, `${piece}.report.md`), worktree && join(worktree.path, 'tmp/handoff', `${piece}.report.md`)].find((file) => file && existsSync(file));
+      const report = reportFile ? readFileSync(reportFile, 'utf8') : undefined;
       return {
         piece,
         title: firstHeading(readFileSync(brief, 'utf8')),
         briefAgeMin: Math.round((now - statSync(brief).mtimeMs) / 60000),
-        report: report === undefined ? undefined : { status: statusOf(report) ?? 'unknown', path: `tmp/handoff/${piece}.report.md`, ageMin: Math.round((now - statSync(reportFile).mtimeMs) / 60000) },
+        report: report === undefined ? undefined : { status: statusOf(report) ?? 'unknown', path: relative(root, reportFile), ageMin: Math.round((now - statSync(reportFile).mtimeMs) / 60000) },
         session: session ? { id: session.id, status: session.status, kind: session.kind } : undefined,
         worktree: worktree ? { path: worktree.path, branch: worktree.branch } : undefined,
       };

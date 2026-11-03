@@ -47,6 +47,23 @@ test('pieces join their brief, report, background session and worktree', () => {
   assert.match(summary(state), /background session lint \(idle\) with no brief/);
 });
 
+test('a report written inside the worktree of its piece is found there', () => {
+  const root = project();
+  const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' });
+  git('init', '-q');
+  writeFileSync(join(root, 'README.md'), '# demo\n');
+  git('add', 'README.md');
+  git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'init');
+  const tree = join(scratch(), 'settings');
+  git('worktree', 'add', '-q', '-b', 'settings', tree);
+  mkdirSync(join(tree, 'tmp/handoff'), { recursive: true });
+  writeFileSync(join(tree, 'tmp/handoff/settings.report.md'), 'Status: partial\n');
+  const settings = coord({ project: root, claudeBin: join(scratch(), 'missing') }).pieces.find((piece) => piece.piece === 'settings');
+  assert.equal(settings.report.status, 'partial');
+  assert.ok(settings.report.path.endsWith('settings/tmp/handoff/settings.report.md'));
+  assert.match(readFileSync(join(PLUGIN, 'core/coordination.md'), 'utf8'), /A worktree starts from the last commit/);
+});
+
 test('without claude agents only the files are shown', () => {
   const root = project();
   const state = coord({ project: root, claudeBin: join(scratch(), 'missing') });
