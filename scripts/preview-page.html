@@ -83,44 +83,10 @@ pre .h { color: var(--muted); }
 <main id="app"></main>
 <script>
 const REPORT = /*__REPORT__*/null;
-const T = {
-  en: {
-    nothing: 'Nothing in the project was changed. This page shows what /init would set up.',
-    level: 'Level', warnings: 'Before you set it up', techs: 'Found in this project', tech: 'Technology',
-    found: 'Found by', sources: 'Rules and know-how from', validation: 'Validation commands', none: 'none found',
-    files: 'Files /init would write', commands: 'Commands', rerun: 'Preview again with this selection',
-    install: 'Install the plugins you ticked', tryit: 'Try it in a throwaway copy of the project',
-    nothingToInstall: 'Tick a plugin above to get its install command.', copy: 'Copy', copied: 'Copied',
-    planned: 'planned', on: 'on', official: 'official', community: 'community', toWrite: 'to write',
-    docsOff: 'not set up', create: 'create', update: 'update', same: 'no change',
-    lite: 'Lite', standard: 'Standard', deep: 'Deep', existing: 'Claude setup already here',
-    recommended: 'recommended', docs: 'Rules already in this project', docsNote: '/hecpack:init reads these and tells you what to carry over and what conflicts with hecpack; nothing is replaced without your word.',
-    topics: 'touches', optional: 'optional', modules: 'Optional modules',
-    installed: 'Already installed', installedNote: 'Plugins and your own skills, agents, commands and hooks, checked against each other and against what hecpack adds. /hecpack:init compares each clash and recommends what to keep; nothing is removed for you.',
-    plugins: 'Plugins', yours: 'Your own', user: 'user', project: 'project', off: 'off', noConflicts: 'Nothing here overlaps with each other or with hecpack.',
-    clash: 'clash', overlap: 'overlap', together: 'works together', withHecpack: 'with hecpack', leaveOut: "leave hecpack's out", usedBy: 'used by {agent}',
-    types: { skill: 'skill', command: 'command', agent: 'agent', hook: 'hook', mcp: 'MCP server', core: 'core rules' },
-    count: {
-      skill: { one: '{n} skill', other: '{n} skills' }, command: { one: '{n} command', other: '{n} commands' },
-      agent: { one: '{n} agent', other: '{n} agents' }, hook: { one: '{n} hook', other: '{n} hooks' },
-      mcp: { one: '{n} MCP server', other: '{n} MCP servers' },
-    },
-    titles: { role: 'Same job: {role}', hook: 'Hooks on {event}', name: 'Same name: {name}', mcp: 'Same MCP server: {name}' },
-    roles: { workflow: 'workflow', planning: 'planning', review: 'review', debugging: 'debugging', validation: 'checks', e2e: 'e2e tests', design: 'design', context: 'context', coordination: 'coordination', usage: 'usage' },
-    hints: {
-      'role-clash': 'Both can start by themselves, so the model may pick either one for the same task. Keep one for this job, or give each a clear part.',
-      'role-overlap': 'These run only when called by name, so they do not get in each other\'s way; use the one you prefer.',
-      'role-together': 'hecpack calls on these when they are installed: keep them.',
-      'hook-clash': 'Both add to the same moment: rules may load twice and cost tokens on every prompt, or two checks may stop one call.',
-      'hook-overlap': 'Several sources run hooks on this event; check they do not repeat each other.',
-      'name-overlap': 'User and project components share one namespace: the project\'s one hides the user\'s.',
-      'name-hecpack': 'A brief has to name hecpack\'s with its prefix (hecpack:{name}).',
-      'mcp-overlap': 'The same server runs twice and its tools show up twice.',
-    },
-    info: {}, warn: {},
-  },
-};
-const t = T.en;
+// The strings in the user's language, from scripts/i18n/en.json and the translation in the data folder.
+const L = /*__STRINGS__*/null;
+const t = L.strings;
+document.title = t.title;
 const state = {
   level: REPORT.selection.level,
   techs: new Set(REPORT.selection.techs),
@@ -129,7 +95,7 @@ const state = {
   modules: new Set(),
   without: new Set(REPORT.selection.without ?? []),
 };
-const fill = (text, values) => text.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
+const fill = (text, values = {}) => String(text).replace(/\{(\w+)\}/g, (_, key) => values?.[key] ?? '');
 const esc = (text) => String(text ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const chip = (source) => {
@@ -161,11 +127,9 @@ const commands = () => {
 const cmd = (text) => `<div class="cmd"><code>${esc(text)}</code><button data-copy="${esc(text)}">${t.copy}</button></div>`;
 
 const OPTIONAL = ['designer', 'e2e-runner'];
-const plural = new Intl.PluralRules(document.documentElement.lang || 'en');
-const counts = (byType) => Object.entries(byType ?? {}).map(([type, n]) => {
-  const forms = t.count[type];
-  return forms ? fill(forms[plural.select(n)] ?? forms.other, { n }) : `${n} ${type}`;
-}).join(' · ');
+const plural = new Intl.PluralRules(L.lang);
+const count = (forms, n) => fill(forms[plural.select(n)] ?? forms.other, { n: n.toLocaleString(L.lang) });
+const counts = (byType) => Object.entries(byType ?? {}).map(([type, n]) => (t.count[type] ? count(t.count[type], n) : `${n} ${type}`)).join(' · ');
 
 const conflictHtml = (conflict) => {
   const title = fill(t.titles[conflict.kind], { role: t.roles[conflict.role] ?? conflict.role, event: conflict.event, name: conflict.name });
@@ -208,14 +172,14 @@ const render = () => {
   document.getElementById('app').innerHTML = `
     <header>
       <div>
-        <h1>${esc(REPORT.project.name)}<small>hecpack ${esc(REPORT.hecpack)} preview</small></h1>
+        <h1>${esc(REPORT.project.name)}<small>${esc(fill(t.subtitle, { version: REPORT.hecpack }))}</small></h1>
         <div class="sub">${t.nothing}</div>
       </div>
       <div class="levels" role="radiogroup" aria-label="${t.level}">
         ${['lite', 'standard', 'deep'].map((id) => `<button role="radio" aria-checked="${id === state.level}" class="${id === state.level ? 'on' : ''}" data-level="${id}">${t[id]}${id === REPORT.recommended?.level ? ` <span class="tag">${t.recommended}</span>` : ''}</button>`).join('')}
       </div>
     </header>
-    ${REPORT.warnings.length ? `<section><h2>${t.warnings}</h2>${REPORT.warnings.map((w) => `<p class="warn">${esc(t.warn[w.id] ?? w.text)}</p>`).join('')}
+    ${REPORT.warnings.length ? `<section><h2>${t.warnings}</h2>${REPORT.warnings.map((w) => `<p class="warn">${esc(t.warn[w.id] ? fill(t.warn[w.id], w.values) : w.text)}</p>`).join('')}
       ${existing.length ? `<div class="label">${t.existing}</div><div class="chips">${existing.map((e) => `<span class="chip">${esc(e)}</span>`).join('')}</div>` : ''}</section>` : ''}
     <section>
       <h2>${t.techs}</h2>
@@ -224,7 +188,7 @@ const render = () => {
         ${REPORT.techs.map((tech) => `
           <tr class="${state.techs.has(tech.id) ? '' : 'off'}">
             <td><input type="checkbox" data-tech="${esc(tech.id)}" ${state.techs.has(tech.id) ? 'checked' : ''} aria-label="${esc(tech.label)}"></td>
-            <td><div class="tech">${esc(tech.label)}</div><div class="ver">${esc(tech.version ?? '')} <span class="kind">${esc(tech.kind)}</span></div></td>
+            <td><div class="tech">${esc(tech.label)}</div><div class="ver">${esc(tech.version ?? '')} <span class="kind">${esc(t.kinds[tech.kind] ?? tech.kind)}</span></div></td>
             <td class="evidence hide-sm">${tech.evidence.map(esc).join('<br>')}</td>
             <td><div class="chips">${tech.sources.map(chip).join('')}</div></td>
           </tr>`).join('')}
@@ -234,9 +198,9 @@ const render = () => {
       <h2>${t.docs}</h2>
       <p class="note">${t.docsNote}</p>
       <div class="scroll"><table>
-        ${REPORT.docs.map((doc) => `<tr><td><span class="path">${esc(doc.path)}</span> <span class="tag">${esc(doc.kind)}, ${doc.lines} lines</span></td>
+        ${REPORT.docs.map((doc) => `<tr><td><span class="path">${esc(doc.path)}</span> <span class="tag">${esc(t.docKinds[doc.kind] ?? doc.kind)}, ${esc(count(t.lines, doc.lines))}</span></td>
           <td class="note">${doc.headings.slice(0, 6).map(esc).join(' · ')}</td>
-          <td><div class="chips">${doc.topics.map((topic) => `<span class="chip">${esc(topic)}</span>`).join('')}</div></td></tr>`).join('')}
+          <td><div class="chips">${doc.topics.map((topic) => `<span class="chip">${esc(t.topicNames[topic] ?? topic)}</span>`).join('')}</div></td></tr>`).join('')}
       </table></div>
     </section>` : ''}
     ${auditHtml(REPORT.audit)}
@@ -246,11 +210,11 @@ const render = () => {
     </section>
     <section>
       <h2>${t.files}</h2>
-      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}<br><span class="tag">Agents: ${(level.agents ?? []).filter((agent) => !state.without.has(agent)).map(esc).join(', ')}</span></p>
+      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}<br><span class="tag">${esc(fill(t.agents, { list: (level.agents ?? []).filter((agent) => !state.without.has(agent)).join(', ') }))}</span></p>
       ${level.files.filter((file) => !file.module || state.modules.has(file.module)).map((file) => `
         <details class="file">
           <summary><span class="badge ${file.action}">${t[file.action]}</span><span class="path">${esc(file.path)}</span>${file.module ? `<span class="tag">${t.optional}: ${esc(file.module)}</span>` : ''}
-            <span class="counts"><span class="a">+${file.added}</span> <span class="d">-${file.removed}</span></span><span class="note">${esc(file.note)}</span></summary>
+            <span class="counts"><span class="a">+${file.added}</span> <span class="d">-${file.removed}</span></span><span class="note">${esc(t.notes[file.id] ?? file.note)}</span></summary>
           <pre>${diffHtml(file.diff)}</pre>
         </details>`).join('')}
     </section>
@@ -260,7 +224,7 @@ const render = () => {
     </section>` : ''}
     <section>
       <h2>${t.commands}</h2>
-      <div class="label">Set the project up with this selection</div>${cmd(c.init)}
+      <div class="label">${t.initLabel}</div>${cmd(c.init)}
       <div class="label">${t.rerun}</div>${cmd(c.rerun)}
       <div class="label">${t.install}</div>${c.installs.length ? c.installs.map(cmd).join('') : `<p class="note">${t.nothingToInstall}</p>`}
       <div class="label">${t.tryit}</div>${cmd(c.tryit)}

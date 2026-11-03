@@ -3,6 +3,7 @@ name: init
 description: Set hecpack up in this project through a short guided choice. Scans the stack, proposes a level and the plugins that fit, reads the rule documents the project already has and says what to carry over and what conflicts, checks the installed plugins, skills, agents and hooks against each other and against hecpack and recommends what to keep, then writes .claude/hecpack/ and one section in CLAUDE.md. Use when the user runs /hecpack:init or asks to set hecpack up here.
 argument-hint: "[--level lite|standard|deep] [--techs id,id] [--without designer,e2e-runner] [--yes]"
 disable-model-invocation: true
+model: best
 allowed-tools: Bash(node:*), Read, Glob, Grep, AskUserQuestion, Edit, Write
 ---
 

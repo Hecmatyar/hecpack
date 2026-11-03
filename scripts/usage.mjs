@@ -4,19 +4,23 @@
 // keeps under ~/.claude/projects; nothing in the project changes and no model is called.
 //
 //   node usage.mjs --project <dir> --out <dir> [--marker YYYY-MM-DD] [--open] [--json]
-//                  [--history-days 7|N|all] [--rebuild] [--quiet] [--claude-home <dir>] [--prices <file>]
+//                  [--history-days 7|N|all] [--rebuild] [--quiet] [--lang <code>] [--i18n <dir>]
+//                  [--claude-home <dir>] [--prices <file>]
 //
 // <out>/<project slug>/ holds store.json (what earlier runs parsed, see lib/usage.mjs), report.json and
 // index.html. The first run for a project counts the last --history-days (7 by default); every later run
 // reads only the transcripts that changed and keeps the ones Claude Code has deleted since. The SessionStart
 // hook (hooks/usage-sync.mjs) runs this with --quiet in the background, so the page is current when opened.
+// The page is in --lang (remembered in the store for the hook), from the translations in --i18n (by default
+// the i18n folder next to <out>); what is not translated stays English.
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PLUGIN_ROOT, pluginVersion } from './lib/setup.mjs';
+import { inject, normLang, stringsFor } from './lib/i18n.mjs';
 import { hecpackMarker, readMessages, transcriptFiles, usageReport, usageText } from './lib/usage.mjs';
 
 export const parseArgs = (argv) => {
@@ -32,6 +36,7 @@ export const parseArgs = (argv) => {
   if (args.marker && !/^\d{4}-\d{2}-\d{2}$/.test(args.marker)) throw new Error('--marker must be a date, YYYY-MM-DD');
   args.historyDays = args.historyDays === 'all' ? 0 : Number(args.historyDays);
   if (!Number.isInteger(args.historyDays) || args.historyDays < 0) throw new Error('--history-days must be a number of days or all');
+  if (args.lang !== undefined) args.lang = normLang(args.lang);
   return args;
 };
 
@@ -53,9 +58,7 @@ const writeAtomic = (file, text) => {
   renameSync(temp, file);
 };
 
-// The page reads the report from an inline script; `</` would close it early.
-const page = (report) =>
-  readFileSync(join(PLUGIN_ROOT, 'scripts/usage-page.html'), 'utf8').replace('/*__REPORT__*/null', () => JSON.stringify(report).replace(/</g, '\\u003c'));
+const page = (report, strings) => inject(readFileSync(join(PLUGIN_ROOT, 'scripts/usage-page.html'), 'utf8'), report, strings);
 
 const openFile = (file) => {
   const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open';
@@ -75,7 +78,9 @@ export const usage = (args) => {
   const files = transcriptFiles(root, args.claudeHome);
   const now = args.date ? Date.parse(args.date) : Date.now();
   const { messages, store, stats } = readMessages(files, earlier, { historyDays: args.historyDays, now, rebuild: args.rebuild });
+  store.lang = args.lang ?? earlier?.lang ?? 'en';
   writeAtomic(storeFile, JSON.stringify(store));
+  const strings = stringsFor({ dir: args.i18n ?? join(dirname(resolve(args.out)), 'i18n'), lang: store.lang, page: 'usage' });
 
   const marker = args.marker ?? hecpackMarker(root);
   const report = {
@@ -88,9 +93,9 @@ export const usage = (args) => {
   };
   writeAtomic(join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
   const html = join(dir, 'index.html');
-  writeAtomic(html, page(report));
+  writeAtomic(html, page(report, strings));
   if (args.open) openFile(html);
-  return { report, dir, html, stats };
+  return { report, dir, html, stats, lang: strings.lang, untranslated: strings.missing };
 };
 
 export const summary = (result) => {
@@ -99,7 +104,8 @@ export const summary = (result) => {
   const head = report.history.firstRun
     ? `First count: ${from ? `history from ${from}` : 'the whole history'}; every later run reads only the new sessions.`
     : `History from ${from ?? 'the start'}; read again: ${stats.read} of ${stats.files} transcripts${stats.gone ? `, ${stats.gone} more already deleted by Claude Code, their totals kept` : ''}.`;
-  return [head, usageText(report), `Page: ${result.html}`].join('\n');
+  const lang = result.untranslated ? `Page language: ${result.lang}, ${result.untranslated} strings still in English (scripts/i18n.mjs fills them).` : '';
+  return [head, usageText(report), lang, `Page: ${result.html}`].filter(Boolean).join('\n');
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

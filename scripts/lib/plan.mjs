@@ -1,13 +1,13 @@
 // What /init would write into a project for one level, as file contents. Nothing here touches the disk:
 // the preview writes these into its own folder, /init into the project.
 
+import { EN, fill } from './i18n.mjs';
+
 export const LEVELS = ['lite', 'standard', 'deep'];
 
-export const LEVEL_INFO = {
-  lite: 'Session rules, triage, the stack and validation commands; the checker agent.',
-  standard: 'Lite plus the architect loop (analysis before M tasks, review after every task), the thinker and the project map; the designer when the stack has UI, the e2e runner when it has an e2e suite.',
-  deep: 'Standard plus the chain of chats, sub-sessions with a coordinator and model limits per agent.',
-};
+// The page strings (scripts/i18n/en.json) are the one source of these texts, so a translation covers them.
+export const LEVEL_INFO = EN.preview.info;
+const NOTES = EN.preview.notes;
 
 const HOME = '.claude/hecpack';
 const core = (file) => `hecpack:core/${file}`;
@@ -211,19 +211,15 @@ export const warnings = (claude) => {
   const out = [];
   const contextHooks = claude.hookEvents.filter((event) => ['UserPromptSubmit', 'SubagentStart', 'SessionStart'].includes(event));
   if (contextHooks.length) {
-    out.push({
-      id: 'hooks',
-      text: `The project already runs its own hooks on ${contextHooks.join(', ')}. With hecpack on, both run and the rules may load twice; keep one source per rule.`,
-    });
+    const values = { events: contextHooks.join(', ') };
+    out.push({ id: 'hooks', values, text: fill(EN.preview.warn.hooks, values) });
   }
   const clash = claude.agents.filter((name) => ['architect', 'thinker', 'checker'].includes(name));
   if (clash.length) {
-    out.push({
-      id: 'agents',
-      text: `The project has its own agents named ${clash.join(', ')}. hecpack's are hecpack:architect, hecpack:thinker, hecpack:checker; a brief has to name which one it means.`,
-    });
+    const values = { names: clash.join(', ') };
+    out.push({ id: 'agents', values, text: fill(EN.preview.warn.agents, values) });
   }
-  if (claude.hecpack) out.push({ id: 'existing', text: 'hecpack is already set up here; the diff compares with the current files.' });
+  if (claude.hecpack) out.push({ id: 'existing', values: {}, text: EN.preview.warn.existing });
   return out;
 };
 
@@ -237,11 +233,11 @@ export const plan = ({ detection, sources, level, language = 'en', techIds, rule
   const claudeMd = detection.claude.claudeMd[0] ?? 'CLAUDE.md';
   const agentList = agentsFor(level, techs, without);
   const files = [
-    { path: `${HOME}/config.json`, content: json(config({ level, language, techs, rules, agentList, without: without.filter((id) => agentsFor(level, techs).includes(id)) })), note: 'level, language, thresholds, models per agent' },
-    { path: `${HOME}/context-map.json`, content: json(contextMap(level, rules, agentList)), note: 'which rules load for which task and agent' },
-    { path: `${HOME}/stack.md`, content: stackMd({ detection, techs, sources: chosen, date, rules }), note: 'technologies, versions, validation, gaps' },
-    ...(level === 'lite' ? [] : [{ path: `${HOME}/project-map.md`, content: projectMapMd({ detection, date }), note: 'folder index to fill in' }]),
-    { path: claudeMd, content: withSection(readProject(claudeMd) ?? '', claudeSection(level)), note: 'one short section pointing to hecpack' },
+    { path: `${HOME}/config.json`, content: json(config({ level, language, techs, rules, agentList, without: without.filter((id) => agentsFor(level, techs).includes(id)) })), id: 'config', note: NOTES.config },
+    { path: `${HOME}/context-map.json`, content: json(contextMap(level, rules, agentList)), id: 'contextMap', note: NOTES.contextMap },
+    { path: `${HOME}/stack.md`, content: stackMd({ detection, techs, sources: chosen, date, rules }), id: 'stack', note: NOTES.stack },
+    ...(level === 'lite' ? [] : [{ path: `${HOME}/project-map.md`, content: projectMapMd({ detection, date }), id: 'projectMap', note: NOTES.projectMap }]),
+    { path: claudeMd, content: withSection(readProject(claudeMd) ?? '', claudeSection(level)), id: 'claudeMd', note: NOTES.claudeMd },
   ];
   return files.map((file) => {
     const before = readProject(file.path);

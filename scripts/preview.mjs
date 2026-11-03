@@ -3,8 +3,11 @@
 // the project. Detects the stack, finds sources for each technology, plans the files for every level and
 // writes them, their diffs against the project, report.json and index.html into its own folder.
 //
-//   node preview.mjs --project <dir> --out <dir> [--level lite|standard|deep] [--lang <code>]
+//   node preview.mjs --project <dir> --out <dir> [--level lite|standard|deep] [--lang <code>] [--i18n <dir>]
 //                    [--techs id,id] [--without designer,e2e-runner] [--try] [--open]
+//
+// --lang is the user's language: the reply language in the planned config.json and the page's language,
+// from the translations in --i18n (by default the i18n folder next to <out>); untranslated strings stay English.
 //
 // --try also clones the project's committed state (git clone --local) next to the report and writes the
 // files of the chosen level there, so the setup can be tried in a throwaway copy.
@@ -13,6 +16,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
+import { inject, normLang, stringsFor } from './lib/i18n.mjs';
 import { fileURLToPath } from 'node:url';
 import { agentIds, agentsFor, LEVEL_INFO, LEVELS, MODULES, plan } from './lib/plan.mjs';
 import { auditText } from './lib/audit.mjs';
@@ -31,6 +35,7 @@ export const parseArgs = (argv) => {
   if (args.level && !LEVELS.includes(args.level)) throw new Error(`--level must be one of ${LEVELS.join(', ')}`);
   if (args.techs) args.techs = String(args.techs).split(',').map((id) => id.trim()).filter(Boolean);
   args.without = agentIds(args.without ? String(args.without).split(',').map((id) => id.trim()).filter(Boolean) : []);
+  args.lang = normLang(args.lang);
   return args;
 };
 
@@ -52,12 +57,7 @@ const countLines = (diff) => {
   return { added, removed };
 };
 
-// The page reads the report from an inline script; `</` would close it early.
-const page = (report) =>
-  readFileSync(join(PLUGIN_ROOT, 'scripts/preview-page.html'), 'utf8').replace(
-    '/*__REPORT__*/null',
-    () => JSON.stringify(report).replace(/</g, '\\u003c'),
-  );
+const page = (report, strings) => inject(readFileSync(join(PLUGIN_ROOT, 'scripts/preview-page.html'), 'utf8'), report, strings);
 
 const openFile = (file) => {
   const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open';
@@ -92,7 +92,7 @@ export const preview = (args) => {
         mkdirSync(dirname(target), { recursive: true });
         writeFileSync(target, file.content);
         const diff = diffOf(file.path, existsSync(join(root, file.path)) ? join(root, file.path) : undefined, target);
-        return { path: file.path, note: file.note, action: file.action, module: file.module, content: file.content, diff, ...countLines(diff) };
+        return { path: file.path, id: file.id, note: file.note, action: file.action, module: file.module, content: file.content, diff, ...countLines(diff) };
       }),
     };
   }
@@ -143,7 +143,9 @@ export const preview = (args) => {
     paths: { out, page: join(out, 'index.html'), sandbox },
   };
   writeFileSync(join(out, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
-  writeFileSync(join(out, 'index.html'), page(report));
+  const strings = stringsFor({ dir: args.i18n ?? join(dirname(resolve(args.out)), 'i18n'), lang: args.lang ?? 'en', page: 'preview' });
+  writeFileSync(join(out, 'index.html'), page(report, strings));
+  report.page = { lang: strings.lang, untranslated: strings.missing };
   return report;
 };
 
@@ -166,6 +168,7 @@ export const summary = (report) => {
   }
   for (const warning of report.warnings) lines.push(`Warning: ${warning.text}`);
   lines.push(auditText(report.audit));
+  if (report.page?.untranslated) lines.push(`Page language: ${report.page.lang}, ${report.page.untranslated} strings still in English (scripts/i18n.mjs fills them).`);
   lines.push(`Page: ${report.paths.page}`);
   if (report.paths.sandbox) lines.push(`Sandbox with the ${report.selection.level} files: ${report.paths.sandbox}`);
   return lines.join('\n');

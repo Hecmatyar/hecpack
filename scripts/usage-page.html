@@ -92,29 +92,22 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ba
 </main>
 <script>
 const REPORT = /*__REPORT__*/null;
-const T = {
-  en: {
-    title: 'Claude Code usage', of: 'of', prices: 'API list prices as of', marker: 'hecpack set up on', noMarker: 'no hecpack setup date (the project has no .claude/hecpack/config.json)',
-    range: 'Period', r7: '7 days', r30: '30 days', r90: '90 days', rall: 'All', rbefore: 'Before hecpack', rafter: 'After hecpack',
-    models: 'Models', all: 'All', other: 'Other',
-    cost: 'Cost', tokens: 'Tokens', output: 'Output tokens', replies: 'Model replies', activeDays: 'Active days', perDay: 'per day', perReply: 'per reply',
-    costChart: 'Cost per day', costHint: 'What the same work would cost on the API, by model.',
-    tokChart: 'Tokens per day', tokHint: 'Input, cache writes, cache reads and output together, by model.',
-    cumChart: 'Cumulative cost', cumHint: 'Running total over the period; the dashed line marks the hecpack setup.',
-    table: 'By model', model: 'Model', input: 'Input', cacheWrite: 'Cache write', cacheRead: 'Cache read', share: 'Share', noPrice: 'no price',
-    compare: 'Before and after hecpack', before: 'Before', after: 'After', days: 'days', outPerReply: 'output per reply', repliesPerDay: 'replies per day',
-    oneSide: 'The comparison appears once there is usage on both sides of the setup date.',
-    unpriced: 'No price in catalog/prices.json for', empty: 'No Claude Code transcripts for this project yet.',
-    emptyRange: 'No usage in this period.', transcripts: 'transcripts', historyFrom: 'history from', historyAll: 'whole history', gone: 'deleted by Claude Code, totals kept', generated: 'generated', yardstick: 'Subscription plans do not bill per token: the money is a yardstick, not an invoice.',
-  },
-};
-const t = T.en;
-const locale = 'en-US';
+// The strings in the user's language, from scripts/i18n/en.json and the translation in the data folder.
+const L = /*__STRINGS__*/null;
+const t = L.strings;
+const locale = L.lang;
+document.title = t.title;
+const fill = (text, values = {}) => String(text).replace(/\{(\w+)\}/g, (_, key) => values?.[key] ?? '');
+const plural = new Intl.PluralRules(locale);
+const count = (forms, n, values = {}) => fill(forms[plural.select(n)] ?? forms.other, { ...values, n: n.toLocaleString(locale) });
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const money = (v) => `$${(v ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const moneyShort = (v) => (v >= 100 ? `$${Math.round(v)}` : v >= 10 ? `$${v.toFixed(1)}` : `$${v.toFixed(2)}`);
-const k = (v) => (v >= 1e9 ? `${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : String(Math.round(v)));
+// Prices are in US dollars; the number format follows the language.
+const usd = (digits) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', minimumFractionDigits: digits, maximumFractionDigits: digits });
+const money = (v) => usd(2).format(v ?? 0);
+const moneyShort = (v) => usd(v >= 100 ? 0 : v >= 10 ? 1 : 2).format(v);
+const compact = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 });
+const k = (v) => (v >= 1e3 ? compact.format(v) : String(Math.round(v)));
 const num = (v) => Math.round(v).toLocaleString(locale);
 const dayMs = 86400000;
 const addDays = (day, n) => new Date(Date.parse(day) + n * dayMs).toISOString().slice(0, 10);
@@ -125,7 +118,7 @@ const fmtDayLong = (day) => new Intl.DateTimeFormat(locale, { day: 'numeric', mo
 const MAX = 8;
 const base = REPORT.models.map((m, i) => ({ id: m.model, label: m.label, color: `var(--c${Math.min(i, MAX)})`, folded: i >= MAX }));
 const series = base.filter((s) => !s.folded);
-if (base.some((s) => s.folded)) series.push({ id: '__other', label: t.other, color: `var(--c${MAX})`, members: base.filter((s) => s.folded).map((s) => s.id) });
+if (base.some((s) => s.folded)) series.push({ id: '__other', label: t.otherModels, color: `var(--c${MAX})`, members: base.filter((s) => s.folded).map((s) => s.id) });
 const seriesOf = (model) => series.find((s) => s.id === model) ?? series.find((s) => s.members?.includes(model));
 
 const state = { range: 'all', on: new Set(series.map((s) => s.id)) };
@@ -245,7 +238,7 @@ const tiles = (rows) => {
     ${tile(money(sum('cost')), t.cost, `${money(sum('cost') / span)} ${t.perDay}`)}
     ${tile(k(sum('tokens')), t.tokens, `${k(sum('tokens') / span)} ${t.perDay}`)}
     ${tile(k(sum('output')), t.output, `${num(sum('output') / Math.max(1, sum('messages')))} ${t.perReply}`)}
-    ${tile(num(sum('messages')), t.replies, `${active} ${t.activeDays.toLowerCase()} / ${span} ${t.days}`)}
+    ${tile(num(sum('messages')), t.replies, esc(count(t.activeOf, span, { active: num(active) })))}
   </div>`;
 };
 
@@ -253,10 +246,10 @@ const comparison = () => {
   if (!REPORT.marker) return '';
   const { before: b, after: a } = REPORT;
   const body = b && a
-    ? `<div class="two">${[[t.before, b], [t.after, a]].map(([h, p]) => `<div class="tile"><div class="h">${esc(h)} <span class="note">${esc(fmtDay(p.from))} – ${esc(fmtDay(p.to))}, ${p.days} ${esc(t.days)}</span></div>
+    ? `<div class="two">${[[t.before, b], [t.after, a]].map(([h, p]) => `<div class="tile"><div class="h">${esc(h)} <span class="note">${esc(fmtDay(p.from))} – ${esc(fmtDay(p.to))}, ${esc(count(t.days, p.days))}</span></div>
         <div class="r"><span>${esc(t.cost)} ${esc(t.perDay)}</span><span>${money(p.costPerDay)}</span></div>
         <div class="r"><span>${esc(t.tokens)} ${esc(t.perDay)}</span><span>${k(p.tokensPerDay)}</span></div>
-        <div class="r"><span>${esc(t.repliesPerDay)}</span><span>${(p.messages / p.days).toFixed(1)}</span></div>
+        <div class="r"><span>${esc(t.repliesPerDay)}</span><span>${(p.messages / p.days).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span></div>
         <div class="r"><span>${esc(t.outPerReply)}</span><span>${num(p.outputPerMessage)}</span></div>
         <div class="r"><span>${esc(t.cost)}</span><span>${money(p.cost)}</span></div></div>`).join('')}</div>`
     : `<p class="note">${esc(t.oneSide)}</p>`;

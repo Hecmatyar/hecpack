@@ -11,6 +11,10 @@ claude plugin marketplace add Hecmatyar/hecpack
 claude plugin install hecpack@hecpack
 ```
 
+`/hecpack:init` and `/hecpack:preview` run on the strongest model your account has (`model: best`: Fable where it is available, Opus otherwise) for that command only; your session model comes back with your next prompt.
+
+The pages (`/preview`, `/usage`, `/context`) come in the language you write to Claude in. hecpack ships them in English; the first time you open one in another language, Claude translates its strings once and keeps them in the plugin's data folder, so later pages, including the usage page the background count rebuilds, open in your language with no model call.
+
 `--scope local` keeps the plugin to you and the current project. Nothing changes in a project until you set it up: every hook is silent without `.claude/hecpack/config.json` (the usage count, which writes only into the plugin's data folder, also runs where you opened `/hecpack:usage` before).
 
 ## Commands

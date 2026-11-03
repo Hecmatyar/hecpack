@@ -7,10 +7,30 @@ allowed-tools: Bash(node:*)
 
 # hecpack context
 
-One command, no analysis by you:
+## The page in the user's language
+
+The page comes in the language the user writes in; for English skip this step. Otherwise, with `<lang>` the code of that language (`ru`, `de`, `pt-BR`):
 
 ```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/context-tree.mjs" --project "${CLAUDE_PROJECT_DIR}" --out "${CLAUDE_PLUGIN_DATA}/context" --open $ARGUMENTS
+node "${CLAUDE_PLUGIN_ROOT}/scripts/i18n.mjs" --lang <lang> --dir "${CLAUDE_PLUGIN_DATA}/i18n" --pages context
+```
+
+When `count` is above 0, translate every value of `missing`, short and plain, keeping each `{placeholder}` and the product, command and file names as they are (each key under `plurals` is one number category: write that grammatical form). Store them all in one call, then resend whatever comes back under `rejected`, fixed:
+
+```
+node "${CLAUDE_PLUGIN_ROOT}/scripts/i18n.mjs" --lang <lang> --dir "${CLAUDE_PLUGIN_DATA}/i18n" --merge <<'JSON'
+{"context.title": "...", ...}
+JSON
+```
+
+The translation stays in the plugin's data folder: this happens once per language, and again only for strings a hecpack update adds or changes.
+
+## Build and open
+
+One command, no analysis by you (`--lang <lang>` drops out for English):
+
+```
+node "${CLAUDE_PLUGIN_ROOT}/scripts/context-tree.mjs" --project "${CLAUDE_PROJECT_DIR}" --out "${CLAUDE_PLUGIN_DATA}/context" --lang <lang> --open $ARGUMENTS
 ```
 
 The script reads the project's `.md` files, the context map (`.claude/hecpack/context-map.json`, or `.claude/context-map.json` in a setup of the same format), the agents, the rules and the auto memory index, and writes the page, `report.json` and a short history into the plugin's data folder. Nothing in the project changes.

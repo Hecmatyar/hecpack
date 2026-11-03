@@ -117,34 +117,18 @@ details.row summary:focus-visible { outline: 2px solid var(--auto); outline-offs
 </div>
 <script>
 const D = /*__REPORT__*/null;
-const T = {
-  en: {
-    title: 'Context tree', sub: (d, m) => `What reaches each mode of the main session and each agent at start, and what it may read by link. ${m} Built on ${d}; tokens are an estimate, characters / 4.`,
-    mapOf: (p) => `Context map: ${p}.`, noMap: 'hecpack is not set up here: the page shows what Claude Code loads by itself and the project\'s own agents.',
-    fInMap: 'Files in the map', fInMapN: (a, b, c) => `${a} of ${b} .md in the project${c ? `, plus ${c} from hecpack` : ''}`,
-    fStart: 'At start', fStartN: (a, b) => `from ${a} to ${b}`,
-    fAll: 'If everything linked is opened', fAllN: 'in practice a small part is read',
-    fReaders: 'Modes and agents', fReadersN: (m, a) => `${m} modes of the main session, ${a} agents`,
-    hReaders: 'Modes and agents', nReaders: '«At start» is loaded with no choice: Claude Code\'s own files (CLAUDE.md, rules without paths, memory index, agent and skill lists), what the hecpack hook injects for the prompt tag or the agent, and the agent\'s own instructions. «By link» is what those files point to; it is read only when the task needs it.',
-    lStart: 'at start', lLink: 'by link, if all opened', lClick: 'click a row for the lists',
-    main: 'Main', tag: 'tag', untagged: 'or untagged', words: 'words', hookAgent: 'agent, hecpack hook at start', projectAgent: 'project agent, no hecpack hook', builtin: 'built-in agent, hecpack hook at start',
-    startList: 'At start', linkList: 'By link', worst: (t, n) => `all reachable by links: ${t} in ${n} files`,
-    since: 'since', hookOver: (c, l) => `The hook injects ${c} characters here, over its ${l}: the rest is named for the agent to read itself. Move a file to a link, or raise parts in context-map.json.`,
-    src: { claude: 'Claude Code', hook: 'hook', agent: 'agent body', list: 'list' },
-    lists: { '(agent descriptions)': (n) => `agent list, ${n}`, '(skill descriptions)': (n) => `skill list, ${n}` },
-    hHeavy: 'What costs most at start', nHeavy: 'A file\'s tokens times the modes and agents that load it at start. These are the first candidates to shorten, split, or move behind a link.', readersN: (n) => `× ${n}`,
-    hFiles: 'Files', nFiles: 'For each file: its weight, the modes and agents that load it at start, and those that reach it by link.', byWeight: 'by weight', byStart: 'by start', byLink: 'by link', lFStart: 'at start', lFLink: 'by link', tokens: 'tokens', nobody: 'none',
-    hRules: 'Rules by path', nRules: 'Loaded by Claude Code when the session opens a file the globs match: .claude/rules with paths, and CLAUDE.md files in subfolders.', noRules: 'none',
-    hOrph: 'Read by nobody', nOrph: 'Agent docs that no mode or agent loads and no file links to. Delete them, or link them from where they matter.', noOrph: 'none',
-    hDups: 'Repeated text', nDups: 'Pairs that share 8-word phrases (the percentage is of the smaller file). Keep one copy and link to it.', noDups: 'no notable repeats',
-    foot: 'Built by /hecpack:context, no model involved. Run it again after a change to see the difference.',
-  },
-};
-const t = T.en;
+// The strings in the user's language, from scripts/i18n/en.json and the translation in the data folder.
+const L = /*__STRINGS__*/null;
+const t = L.strings;
+document.title = t.title;
+const fill = (text, values = {}) => String(text).replace(/\{(\w+)\}/g, (_, key) => values?.[key] ?? '');
+const plural = new Intl.PluralRules(L.lang);
+const count = (forms, n) => fill(forms[plural.select(n)] ?? forms.other, { n: n.toLocaleString(L.lang) });
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-const k = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v));
-const fmtDate = (s) => new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(s));
+const compact = new Intl.NumberFormat(L.lang, { notation: 'compact', maximumFractionDigits: 1 });
+const k = (v) => (v >= 1000 ? compact.format(v) : String(v));
+const fmtDate = (s) => new Intl.DateTimeFormat(L.lang, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(s));
 
 const R = D.readers;
 const label = (r) => (r.kind === 'main' ? `${t.main} · ${r.name}` : r.name);
@@ -159,17 +143,17 @@ const trigger = (r) => {
 const nameOf = Object.fromEntries(R.map((r) => [r.id, label(r)]));
 
 $('title').innerHTML = `${esc(t.title)} <small>${esc(D.root.split('/').pop())}</small>`;
-$('sub').textContent = t.sub(fmtDate(D.generatedAt), D.hecpack ? t.mapOf(D.manifest) : t.noMap);
+$('sub').textContent = fill(t.sub, { date: fmtDate(D.generatedAt), map: D.hecpack ? fill(t.mapOf, { path: D.manifest }) : t.noMap });
 
 const starts = R.map((r) => r.mustTok);
 const alls = R.map((r) => r.mustTok + r.optionalTok);
 const minR = R[starts.indexOf(Math.min(...starts))], maxR = R[starts.indexOf(Math.max(...starts))];
 const mains = R.filter((r) => r.kind === 'main').length;
 $('facts').innerHTML = [
-  [t.fInMap, D.stats.inMapProject, t.fInMapN(D.stats.inMapProject, D.stats.projectFiles, D.stats.inMapPlugin)],
-  [t.fStart, `${k(Math.min(...starts))} – ${k(Math.max(...starts))}`, t.fStartN(label(minR), label(maxR))],
+  [t.fInMap, D.stats.inMapProject, [fill(t.fInMapN, { a: D.stats.inMapProject, b: D.stats.projectFiles }), D.stats.inMapPlugin ? fill(t.fInMapPlugin, { n: D.stats.inMapPlugin }) : ''].filter(Boolean).join(', ')],
+  [t.fStart, `${k(Math.min(...starts))} – ${k(Math.max(...starts))}`, fill(t.fStartN, { min: label(minR), max: label(maxR) })],
   [t.fAll, `${k(Math.min(...alls))} – ${k(Math.max(...alls))}`, t.fAllN],
-  [t.fReaders, R.length, t.fReadersN(mains, R.length - mains)],
+  [t.fReaders, R.length, `${count(t.modesN, mains)}, ${count(t.agentsN, R.length - mains)}`],
 ].map(([a, b, c]) => `<div class="fact"><span class="muted">${esc(a)}</span><b>${esc(b)}</b><span class="note">${esc(c)}</span></div>`).join('');
 
 $('h-readers').textContent = t.hReaders;
@@ -184,7 +168,8 @@ const delta = (r) => {
   return `<span class="delta ${d > 0 ? 'up' : 'down'}" title="${esc(t.since)} ${esc(fmtDate(D.previous.at))}">${d > 0 ? '+' : '−'}${k(Math.abs(d))}</span>`;
 };
 const MAXR = Math.max(...alls, 1);
-const itemName = (e) => (t.lists[e.p] ? t.lists[e.p](e.count) : e.p);
+const LISTS = { '(agent descriptions)': 'agents', '(skill descriptions)': 'skills' };
+const itemName = (e) => (LISTS[e.p] ? fill(t.lists[LISTS[e.p]], { n: e.count }) : e.p);
 // Paths break after a slash, never inside a name.
 const path = (p) => esc(p).replace(/\//g, '/<wbr>');
 $('readers').innerHTML = R.map((r) => `
@@ -194,19 +179,19 @@ $('readers').innerHTML = R.map((r) => `
     <span class="a" style="left:0;width:${(r.mustTok / MAXR) * 100}%"></span><span class="o" style="left:${(r.mustTok / MAXR) * 100}%;width:${(r.optionalTok / MAXR) * 100}%"></span>
     <em>${k(r.mustTok)} + ${k(r.optionalTok)}</em></div>
 </summary>
-${r.hook?.over ? `<div class="warn">${esc(t.hookOver(r.hook.chars, r.hook.limit))}</div>` : ''}
+${r.hook?.over ? `<div class="warn">${esc(fill(t.hookOver, { chars: r.hook.chars.toLocaleString(L.lang), limit: r.hook.limit.toLocaleString(L.lang) }))}</div>` : ''}
 <div class="open">
   <div class="box"><h3><span><i class="dot" style="background:var(--auto)"></i>${esc(t.startList)}</span><span class="n">${r.must.length} · ${k(r.mustTok)}</span></h3>
-    <ul>${r.must.map((e) => `<li><span>${t.lists[e.p] ? esc(itemName(e)) : path(e.p)}<span class="src">${esc(t.src[e.src] ?? e.src)}</span></span><span>${k(e.tok)}</span></li>`).join('')}</ul></div>
+    <ul>${r.must.map((e) => `<li><span>${LISTS[e.p] ? esc(itemName(e)) : path(e.p)}<span class="src">${esc(t.src[e.src] ?? e.src)}</span></span><span>${k(e.tok)}</span></li>`).join('')}</ul></div>
   <div class="box"><h3><span><i class="dot" style="background:var(--link)"></i>${esc(t.linkList)}</span><span class="n">${r.optional.length} · ${k(r.optionalTok)}</span></h3>
     <ul>${r.optional.map((e) => `<li><span>${path(e.p)}${e.when ? `<small>${esc(e.when)}</small>` : ''}</span><span>${k(e.tok)}</span></li>`).join('') || `<li><span class="empty">${esc(t.nobody)}</span></li>`}</ul>
-    <p class="note" style="margin-top:6px">${esc(t.worst(k(r.worstTok), r.reachCount))}</p></div>
+    <p class="note" style="margin-top:6px">${esc(fill(t.worst, { tokens: k(r.worstTok), files: count(t.filesN, r.reachCount) }))}</p></div>
 </div></details>`).join('');
 
 $('h-heavy').textContent = t.hHeavy;
 $('n-heavy').textContent = t.nHeavy;
 const maxCost = Math.max(...D.heavy.map((h) => h.cost), 1);
-$('heavy').innerHTML = D.heavy.map((h) => `<li><span>${path(h.p)}<div class="bar" style="height:8px;margin-top:4px"><span class="a" style="left:0;width:${(h.cost / maxCost) * 100}%"></span></div></span><span>${k(h.tok)} ${esc(t.readersN(h.readers))} = ${k(h.cost)}</span></li>`).join('') || `<li><span class="empty">${esc(t.nobody)}</span></li>`;
+$('heavy').innerHTML = D.heavy.map((h) => `<li><span>${path(h.p)}<div class="bar" style="height:8px;margin-top:4px"><span class="a" style="left:0;width:${(h.cost / maxCost) * 100}%"></span></div></span><span>${k(h.tok)} ${esc(fill(t.readersN, { n: h.readers }))} = ${k(h.cost)}</span></li>`).join('') || `<li><span class="empty">${esc(t.nobody)}</span></li>`;
 
 $('h-files').textContent = t.hFiles;
 $('n-files').textContent = t.nFiles;

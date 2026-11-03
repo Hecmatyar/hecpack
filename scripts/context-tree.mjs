@@ -4,14 +4,16 @@
 // what it may read by link; the rules that load by path, the docs nobody reaches, the files that repeat
 // each other, and the change since the previous run. Read-only for the project; no model call.
 //
-//   node context-tree.mjs --project <dir> --out <dir> [--open] [--json] [--claude-home <dir>]
+//   node context-tree.mjs --project <dir> --out <dir> [--lang <code>] [--i18n <dir>] [--open] [--json]
+//                         [--claude-home <dir>]
 
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contextTree, treeText } from './lib/context-tree.mjs';
 import { PLUGIN_ROOT, pluginVersion } from './lib/setup.mjs';
+import { inject, normLang, stringsFor } from './lib/i18n.mjs';
 import { storeDir } from './usage.mjs';
 
 const HISTORY = 30;
@@ -26,6 +28,7 @@ export const parseArgs = (argv) => {
       args[key.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = inline ?? argv[++i];
     }
   }
+  args.lang = normLang(args.lang ?? 'en');
   return args;
 };
 
@@ -43,8 +46,7 @@ const writeAtomic = (file, text) => {
   renameSync(temp, file);
 };
 
-const page = (report) =>
-  readFileSync(join(PLUGIN_ROOT, 'scripts/context-tree-page.html'), 'utf8').replace('/*__REPORT__*/null', () => JSON.stringify(report).replace(/</g, '\\u003c'));
+const page = (report, strings) => inject(readFileSync(join(PLUGIN_ROOT, 'scripts/context-tree-page.html'), 'utf8'), report, strings);
 
 const openFile = (file) => {
   const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open';
@@ -74,13 +76,15 @@ export const run = (args) => {
   const report = { ...tree, generatedAt: at, version: pluginVersion(), previous };
   writeAtomic(join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
   const html = join(dir, 'index.html');
-  writeAtomic(html, page(report));
+  const strings = stringsFor({ dir: args.i18n ?? join(dirname(resolve(args.out)), 'i18n'), lang: args.lang ?? 'en', page: 'context' });
+  writeAtomic(html, page(report, strings));
   if (args.open) openFile(html);
-  return { report, dir, html };
+  return { report, dir, html, lang: strings.lang, untranslated: strings.missing };
 };
 
 export const summary = (result) => {
-  return [treeText(result.report), `Page: ${result.html}`].join('\n');
+  const lang = result.untranslated ? `Page language: ${result.lang}, ${result.untranslated} strings still in English (scripts/i18n.mjs fills them).` : '';
+  return [treeText(result.report), lang, `Page: ${result.html}`].filter(Boolean).join('\n');
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
