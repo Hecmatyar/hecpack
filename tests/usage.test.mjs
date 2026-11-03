@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { costOf, hecpackMarker, priceFor, readMessages, transcriptFiles, usageReport, usageText } from '../scripts/lib/usage.mjs';
+import { costOf, hecpackMarker, priceFor, readMessages, readTranscript, STORE_VERSION, transcriptFiles, usageReport, usageText } from '../scripts/lib/usage.mjs';
 import { parseArgs, summary, usage } from '../scripts/usage.mjs';
 import { syncPlan } from '../scripts/hooks/usage-sync.mjs';
 import { FIXTURES, PLUGIN, scratch } from './helpers.mjs';
@@ -112,6 +112,68 @@ test('the report sums per day and model and splits around the marker', () => {
   assert.equal(report.after.days, 3);
   assert.match(usageText(report), /Before hecpack \(4 days\)/);
   assert.match(usageText(usageReport({ messages: [], prices: prices() })), /No Claude Code transcripts/);
+});
+
+const WORK = join(HOME, 'projects/-tmp-work-project');
+
+test('a session gives its prompts, compactions and working time; a fork copy and a notice do not count', () => {
+  const main = readTranscript(join(WORK, 'w1.jsonl'));
+  assert.deepEqual(main.records.map((r) => `${r.id}:${r.stage}`), ['c1:explore', 'c2:edit', 'c3:validate', 'c4:architect', 'c5:answer', 'c6:service', 'c7:answer']);
+  // 2 prompts (not the fork's, the meta record or the task notification), 1 compaction; time: model time
+  // and tool runs, without the architect's run (counted in its own file) and the wait for the answer.
+  assert.deepEqual(main.days, { '2026-10-20': [2, 1, 180] });
+  assert.equal(main.agent, undefined);
+  const run = readTranscript(join(WORK, 'w1/subagents/agent-x.jsonl'));
+  assert.deepEqual(run.records.map((r) => `${r.id}:${r.stage}`), ['a1:architect', 'a2:architect']);
+  assert.equal(run.agent, 'hecpack:architect');
+  assert.deepEqual(run.days, { '2026-10-20': [0, 0, 155] }, 'its own record gaps, its prompt is not the user\'s');
+});
+
+test('the report gives the cost of a working hour and of a prompt, and splits by stage, context and agent', () => {
+  const { messages, activity } = readMessages(transcriptFiles('/tmp/work-project', HOME), undefined, { historyDays: 0 });
+  assert.deepEqual(activity['2026-10-20'], { prompts: 2, compactions: 1, seconds: 335, sessions: 1, runs: { 'hecpack:architect': 1 } });
+  const report = usageReport({ messages, activity, prices: prices() });
+  const total = report.total;
+  assert.equal(total.prompts, 2);
+  assert.equal(total.sessions, 1);
+  assert.equal(total.runs, 1);
+  assert.equal(total.hours, 0.1);
+  const cost = report.days[0].cost;
+  assert.equal(total.costPerHour, Number((cost / (335 / 3600)).toFixed(2)));
+  assert.equal(total.costPerPrompt, Number((cost / 2).toFixed(2)));
+  assert.ok(total.subagentShare > 0 && total.subagentShare < 1);
+  const opus = report.days[0].models['claude-opus-5-5'];
+  assert.deepEqual(Object.keys(opus.stages).sort(), ['answer', 'architect', 'edit', 'explore', 'service', 'validate']);
+  assert.equal(opus.buckets['200to300k'].messages, 1);
+  assert.equal(opus.buckets.lt100k.messages, 6);
+  assert.deepEqual(Object.keys(report.days[0].models['claude-sonnet-5-5'].agents), ['hecpack:architect']);
+  assert.match(usageText(report), /Work: 2 prompts in 1 session, 0\.1 working hours; \$[\d.]+ per working hour, \$[\d.]+ per prompt; 1 compaction; subagents \d+% of the cost\./);
+});
+
+test('a version 2 store keeps its window and deleted transcripts, and reads the others again', () => {
+  const files = transcriptFiles('/tmp/work-project', HOME);
+  const v2 = {
+    version: 2,
+    from: '2026-10-15',
+    createdAt: '2026-10-15T00:00:00.000Z',
+    lang: 'ru',
+    files: {
+      [files[0]]: { size: 1, mtimeMs: 1, records: [['c1', '2026-10-20', 'claude-opus-5-5', 1, 0, 0, 1]] },
+      '/gone/s0.jsonl': { size: 1, mtimeMs: 1, gone: true, records: [['g1', '2026-10-16', 'claude-opus-5-5', 1000, 0, 0, 100]] },
+      '/gone/s0/subagents/agent-q.jsonl': { size: 1, mtimeMs: 1, gone: true, records: [['g2', '2026-10-16', 'claude-opus-5-5', 1000, 0, 0, 100]] },
+    },
+  };
+  const { messages, store, stats } = readMessages(files, v2, { now: Date.parse('2026-10-21T00:00:00Z') });
+  assert.equal(store.version, STORE_VERSION);
+  assert.equal(store.from, '2026-10-15');
+  assert.equal(store.lang, 'ru');
+  assert.equal(stats.migrated, true);
+  assert.equal(stats.firstRun, false);
+  assert.equal(stats.read, 2);
+  assert.equal(messages.find((m) => m.id === 'g1').stage, 'unknown');
+  assert.equal(messages.find((m) => m.id === 'g2').agent, 'subagent');
+  assert.equal(messages.find((m) => m.id === 'c1').stage, 'explore');
+  assert.equal(messages.filter((m) => m.id === 'c1').length, 1);
 });
 
 test('the marker is the day config.json was added, or nothing without it', () => {

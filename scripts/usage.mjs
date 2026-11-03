@@ -8,7 +8,8 @@
 //                  [--claude-home <dir>] [--prices <file>]
 //
 // <out>/<project slug>/ holds store.json (what earlier runs parsed, see lib/usage.mjs), report.json and
-// index.html. The first run for a project counts the last --history-days (7 by default); every later run
+// index.html. Besides tokens and money per model, the page has the cost of an hour of work and of a prompt,
+// and where the money goes: by stage of the work, by context size, by agent. The first run for a project counts the last --history-days (7 by default); every later run
 // reads only the transcripts that changed and keeps the ones Claude Code has deleted since. The SessionStart
 // hook (hooks/usage-sync.mjs) runs this with --quiet in the background, so the page is current when opened.
 // The page is in --lang (remembered in the store for the hook), from the translations in --i18n (by default
@@ -77,14 +78,14 @@ export const usage = (args) => {
   const earlier = readJson(storeFile);
   const files = transcriptFiles(root, args.claudeHome);
   const now = args.date ? Date.parse(args.date) : Date.now();
-  const { messages, store, stats } = readMessages(files, earlier, { historyDays: args.historyDays, now, rebuild: args.rebuild });
+  const { messages, activity, store, stats } = readMessages(files, earlier, { historyDays: args.historyDays, now, rebuild: args.rebuild });
   store.lang = args.lang ?? earlier?.lang ?? 'en';
   writeAtomic(storeFile, JSON.stringify(store));
   const strings = stringsFor({ dir: args.i18n ?? join(dirname(resolve(args.out)), 'i18n'), lang: store.lang, page: 'usage' });
 
   const marker = args.marker ?? hecpackMarker(root);
   const report = {
-    ...usageReport({ messages, prices, marker }),
+    ...usageReport({ messages, activity, prices, marker }),
     root,
     generatedAt: new Date(now).toISOString().slice(0, 19),
     version: pluginVersion(),
@@ -103,6 +104,8 @@ export const summary = (result) => {
   const from = report.history.from;
   const head = report.history.firstRun
     ? `First count: ${from ? `history from ${from}` : 'the whole history'}; every later run reads only the new sessions.`
+    : stats.migrated
+    ? `History from ${from ?? 'the start'}; the transcripts still there were read again for prompts, working time and stages${stats.gone ? `, ${stats.gone} deleted ones keep their token totals only` : ''}.`
     : `History from ${from ?? 'the start'}; read again: ${stats.read} of ${stats.files} transcripts${stats.gone ? `, ${stats.gone} more already deleted by Claude Code, their totals kept` : ''}.`;
   const lang = result.untranslated ? `Page language: ${result.lang}, ${result.untranslated} strings still in English (scripts/i18n.mjs fills them).` : '';
   return [head, usageText(report), lang, `Page: ${result.html}`].filter(Boolean).join('\n');

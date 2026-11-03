@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { coord, summary } from '../scripts/coord.mjs';
@@ -62,6 +62,18 @@ test('a report written inside the worktree of its piece is found there', () => {
   assert.equal(settings.report.status, 'partial');
   assert.ok(settings.report.path.endsWith('settings/tmp/handoff/settings.report.md'));
   assert.match(readFileSync(join(PLUGIN, 'core/coordination.md'), 'utf8'), /A worktree starts from the last commit/);
+});
+
+test('old handoff notes are counted, not listed', () => {
+  const root = project();
+  const old = new Date(Date.now() - 3 * 86400000);
+  writeFileSync(join(root, 'tmp/handoff/old-task.md'), '# An old chain-of-chats note\n');
+  utimesSync(join(root, 'tmp/handoff/old-task.md'), old, old);
+  const state = coord({ project: root, claudeBin: join(scratch(), 'missing') });
+  assert.ok(!state.pieces.some((piece) => piece.piece === 'old-task'));
+  assert.equal(state.older, 1);
+  assert.match(summary(state), /1 older notes in tmp\/handoff\//);
+  assert.ok(coord({ project: root, claudeBin: join(scratch(), 'missing'), all: true }).pieces.some((piece) => piece.piece === 'old-task'));
 });
 
 test('without claude agents only the files are shown', () => {

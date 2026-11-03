@@ -191,6 +191,17 @@
     "replies": "Model replies",
     "perDay": "per day",
     "perReply": "per reply",
+    "perHour": "Cost of a working hour",
+    "perPrompt": "Cost of a prompt",
+    "hoursOfWork": {
+      "one": "{n} hour of work",
+      "other": "{n} hours of work"
+    },
+    "noTime": "no working time recorded",
+    "prompts": {
+      "one": "{n} prompt",
+      "other": "{n} prompts"
+    },
     "activeOf": {
       "one": "{active} active of {n} day",
       "other": "{active} active of {n} days"
@@ -205,6 +216,42 @@
     "tokHint": "Input, cache writes, cache reads and output together, by model.",
     "cumChart": "Cumulative cost",
     "cumHint": "Running total over the period; the dashed line marks the hecpack setup.",
+    "where": "Where the money goes",
+    "whereHint": "For the models and the period chosen above.",
+    "sessions": "Sessions",
+    "perSession": "per session",
+    "compactions": "Compactions",
+    "runs": "Subagent runs",
+    "ofCost": "{pct} of the cost",
+    "byStage": "By stage of the work",
+    "byStageHint": "A model call counts to the stage of the tools it called; the calls inside a subagent count to it.",
+    "byContext": "By context size",
+    "byContextHint": "Main-session calls by the context they carried (input and cache). Each call reads its whole context again, so the large ones cost the most. Hover a row for tokens and replies.",
+    "byAgent": "By agent",
+    "byAgentHint": "Subagent runs: the architect, the checker, Explore and the others.",
+    "agent": "Agent",
+    "noAgents": "No subagent runs in this period.",
+    "workNote": "Working time is model time plus the tools it ran: waiting for you is not counted, and a subagent counts by its own activity. A prompt is a message you wrote.",
+    "stage": {
+      "explore": "Reading and search",
+      "edit": "Code edits",
+      "docs": "Docs and rules",
+      "validate": "Checks: tests, lint, types",
+      "architect": "Architect",
+      "subagent": "Other subagents",
+      "design": "Design tools",
+      "web": "Web and documentation",
+      "answer": "Answers without tools",
+      "other": "Other commands",
+      "service": "Plans, tasks, questions",
+      "unknown": "Not split (counted before stages)"
+    },
+    "bucket": {
+      "lt100k": "under 100k",
+      "100to200k": "100–200k",
+      "200to300k": "200–300k",
+      "gt300k": "over 300k"
+    },
     "table": "By model",
     "model": "Model",
     "input": "Input",
@@ -217,6 +264,7 @@
     "after": "After",
     "outPerReply": "output per reply",
     "repliesPerDay": "replies per day",
+    "promptsPerDay": "prompts per day",
     "oneSide": "The comparison appears once there is usage on both sides of the setup date.",
     "unpriced": "No price in catalog/prices.json for",
     "empty": "No Claude Code transcripts for this project yet.",

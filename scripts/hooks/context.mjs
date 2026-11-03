@@ -3,7 +3,8 @@
 // .claude/hecpack/context-map.json. A tag in the prompt ([S], [M], [code], [coord], [q], ...) or a subagent's
 // name picks the files; an untagged prompt gets the default type plus types whose keywords it contains.
 // One hook output is capped at 10,000 chars, so the files are packed into parts and the hook is registered
-// once per part (`--part N`); each part computes the layout itself, so the parallel processes never race.
+// once per part (`--part N`, HOOK_PARTS times in hooks/hooks.json); each part computes the layout itself, so
+// the parallel processes never race. A part with nothing to carry prints nothing.
 // A project without the context map is not set up by hecpack: the hook stays silent.
 
 import {
@@ -25,6 +26,8 @@ export const PLUGIN_ROOT = resolve(
     fileURLToPath(new URL('../..', import.meta.url)),
 );
 export const MANIFEST = '.claude/hecpack/context-map.json';
+// How many times hooks/hooks.json registers the hook per event: up to 8 × ~9.8k chars of rules.
+export const HOOK_PARTS = 8;
 const PLUGIN_PREFIX = 'hecpack:';
 // Another session's state files older than a week are removed when any session starts.
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -88,7 +91,7 @@ export const planParts = ({ manifest, specs, skip = [], root }) => {
 // The text of part `part` (from 1) of `count` registered parts; what did not fit is named in the last one.
 export const renderPart = ({ parts, part, count, label }) => {
   const text = parts[part - 1];
-  if (text === undefined) return '';
+  if (text === undefined || part > count) return '';
   const head = `Project rules auto-loaded for ${label} (part ${part} of ${Math.min(parts.length, count)}), binding like CLAUDE.md:\n\n`;
   const rest =
     part === count && parts.length > count
@@ -201,7 +204,7 @@ const main = () => {
     if (!specs) return;
     parts = planParts({ manifest, specs, root });
     label = `the ${input.agent_type} agent`;
-    count = manifest.parts.agent;
+    count = HOOK_PARTS;
   } else if (event === 'UserPromptSubmit') {
     const done = readDone(root, session, part);
     const types = promptTypes(String(input.prompt ?? ''), manifest).filter(
@@ -215,7 +218,7 @@ const main = () => {
       root,
     });
     label = `${types.join(' + ')} work`;
-    count = manifest.parts.prompt;
+    count = HOOK_PARTS;
     mkdirSync(stateDir(root), { recursive: true });
     writeFileSync(
       stateFile(root, session, part),

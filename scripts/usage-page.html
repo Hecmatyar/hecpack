@@ -75,6 +75,18 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ba
 :root[data-theme="dark"] .warn { background: #3a3015; color: #f0d48a; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warn { background: #3a3015; color: #f0d48a; } }
 .empty { padding: 40px 0; text-align: center; color: var(--muted); }
+.block + .block { margin-top: 22px; }
+.block h3 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+.block .hint { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+.bar { display: grid; grid-template-columns: minmax(130px, 32%) 1fr 84px 44px; gap: 12px; align-items: center; padding: 4px 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.bar .bl { overflow-wrap: anywhere; }
+.bar .bt { height: 10px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+.bar .bt i { display: block; height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; min-width: 2px; }
+.bar .bt i.zero { min-width: 0; }
+.bar .bv { text-align: right; }
+.bar .bp { text-align: right; color: var(--muted); }
+.scroll { overflow-x: auto; }
+@media (max-width: 640px) { .bar { grid-template-columns: 1fr auto 40px; gap: 4px 10px; } .bar .bt { grid-column: 1 / -1; grid-row: 2; } }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .two .tile .h { font-weight: 600; margin-bottom: 8px; }
 .two .tile .r { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; padding: 3px 0; }
@@ -133,6 +145,11 @@ const rangeBounds = () => {
   return [addDays(today, -(Number(state.range) - 1)), today];
 };
 
+const addPart = (map, key, v) => {
+  const x = (map[key] ??= { cost: 0, tokens: 0, messages: 0 });
+  x.cost += v.cost; x.tokens += v.tokens; x.messages += v.messages;
+};
+
 // Day rows of the period, every calendar day, each with the on series summed.
 const periodRows = () => {
   const [from, to] = rangeBounds();
@@ -141,6 +158,7 @@ const periodRows = () => {
   for (let day = from; day <= to; day = addDays(day, 1)) {
     const src = byDay[day];
     const per = {};
+    const stages = {}, buckets = {}, agents = {};
     for (const s of series) if (state.on.has(s.id)) per[s.id] = { cost: 0, tokens: 0, output: 0, messages: 0 };
     if (src) {
       for (const [model, u] of Object.entries(src.models)) {
@@ -150,10 +168,14 @@ const periodRows = () => {
         per[s.id].tokens += u.tokens;
         per[s.id].output += u.output;
         per[s.id].messages += u.messages;
+        for (const [key, v] of Object.entries(u.stages ?? {})) stages[key] = (stages[key] ?? 0) + v;
+        for (const [key, v] of Object.entries(u.buckets ?? {})) addPart(buckets, key, v);
+        for (const [key, v] of Object.entries(u.agents ?? {})) addPart(agents, key, v);
       }
     }
     const sum = (key) => Object.values(per).reduce((a, v) => a + v[key], 0);
-    rows.push({ day, per, cost: sum('cost'), tokens: sum('tokens'), output: sum('output'), messages: sum('messages') });
+    // The work data (prompts, time, sessions, runs) belongs to the day, whatever the models.
+    rows.push({ day, per, cost: sum('cost'), tokens: sum('tokens'), output: sum('output'), messages: sum('messages'), prompts: src?.prompts ?? 0, seconds: src?.seconds ?? 0, sessions: src?.sessions ?? 0, compactions: src?.compactions ?? 0, runs: src?.runs ?? {}, stages, buckets, agents });
   }
   return rows;
 };
@@ -229,13 +251,19 @@ const cumulative = (rows) => {
   return `<svg viewBox="0 0 ${W} ${H}">${out}<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"></path>${markerLine(rows, 'hecpack')}${hits}</svg>`;
 };
 
+const tile = (v, label, d) => `<div class="tile"><div class="v">${v}</div><div class="k">${esc(label)}</div>${d ? `<div class="d">${d}</div>` : ''}</div>`;
+const pct = (v, of) => (of > 0 ? `${Math.round((100 * v) / of)}%` : '—');
+
 const tiles = (rows) => {
   const sum = (key) => rows.reduce((a, r) => a + r[key], 0);
   const active = rows.filter((r) => r.messages).length;
   const span = Math.max(1, rows.length);
-  const tile = (v, label, d) => `<div class="tile"><div class="v">${v}</div><div class="k">${esc(label)}</div>${d ? `<div class="d">${d}</div>` : ''}</div>`;
+  const hours = sum('seconds') / 3600;
+  const prompts = sum('prompts');
   return `<div class="tiles">
     ${tile(money(sum('cost')), t.cost, `${money(sum('cost') / span)} ${t.perDay}`)}
+    ${tile(hours > 0 ? money(sum('cost') / hours) : '—', t.perHour, esc(hours > 0 ? count(t.hoursOfWork, Math.round(hours * 10) / 10) : t.noTime))}
+    ${tile(prompts ? money(sum('cost') / prompts) : '—', t.perPrompt, esc(count(t.prompts, prompts)))}
     ${tile(k(sum('tokens')), t.tokens, `${k(sum('tokens') / span)} ${t.perDay}`)}
     ${tile(k(sum('output')), t.output, `${num(sum('output') / Math.max(1, sum('messages')))} ${t.perReply}`)}
     ${tile(num(sum('messages')), t.replies, esc(count(t.activeOf, span, { active: num(active) })))}
@@ -248,12 +276,65 @@ const comparison = () => {
   const body = b && a
     ? `<div class="two">${[[t.before, b], [t.after, a]].map(([h, p]) => `<div class="tile"><div class="h">${esc(h)} <span class="note">${esc(fmtDay(p.from))} – ${esc(fmtDay(p.to))}, ${esc(count(t.days, p.days))}</span></div>
         <div class="r"><span>${esc(t.cost)} ${esc(t.perDay)}</span><span>${money(p.costPerDay)}</span></div>
+        <div class="r"><span>${esc(t.perHour)}</span><span>${p.costPerHour != null ? money(p.costPerHour) : '—'}</span></div>
+        <div class="r"><span>${esc(t.perPrompt)}</span><span>${p.costPerPrompt != null ? money(p.costPerPrompt) : '—'}</span></div>
+        <div class="r"><span>${esc(t.promptsPerDay)}</span><span>${((p.prompts ?? 0) / p.days).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span></div>
         <div class="r"><span>${esc(t.tokens)} ${esc(t.perDay)}</span><span>${k(p.tokensPerDay)}</span></div>
         <div class="r"><span>${esc(t.repliesPerDay)}</span><span>${(p.messages / p.days).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span></div>
         <div class="r"><span>${esc(t.outPerReply)}</span><span>${num(p.outputPerMessage)}</span></div>
         <div class="r"><span>${esc(t.cost)}</span><span>${money(p.cost)}</span></div></div>`).join('')}</div>`
     : `<p class="note">${esc(t.oneSide)}</p>`;
   return `<section><h2>${esc(t.compare)}</h2>${body}</section>`;
+};
+
+// Where the money goes: the period's cost by stage, by context size of main-session calls, by agent.
+const STAGE_ORDER = Object.keys(t.stage);
+const BUCKET_ORDER = Object.keys(t.bucket);
+
+const bars = (items, total) => {
+  const max = Math.max(0, ...items.map((item) => item.cost));
+  return items.map((item) => {
+    const width = max > 0 ? (100 * item.cost) / max : 0;
+    return `<div class="bar"${item.title ? ` title="${esc(item.title)}"` : ''}><span class="bl">${esc(item.label)}</span><span class="bt"><i class="${width ? '' : 'zero'}" style="width:${width.toFixed(1)}%"></i></span><span class="bv">${money(item.cost)}</span><span class="bp">${pct(item.cost, total)}</span></div>`;
+  }).join('');
+};
+
+const where = (rows) => {
+  const sum = (key) => rows.reduce((a, r) => a + r[key], 0);
+  const cost = sum('cost');
+  const stages = {}, buckets = {}, agents = {}, runs = {};
+  for (const r of rows) {
+    for (const [key, v] of Object.entries(r.stages)) stages[key] = (stages[key] ?? 0) + v;
+    for (const [key, v] of Object.entries(r.buckets)) addPart(buckets, key, v);
+    for (const [key, v] of Object.entries(r.agents)) addPart(agents, key, v);
+    for (const [key, n] of Object.entries(r.runs)) runs[key] = (runs[key] ?? 0) + n;
+  }
+  const sessions = sum('sessions');
+  const compactions = sum('compactions');
+  const runCount = Object.values(runs).reduce((a, n) => a + n, 0);
+  const agentCost = Object.values(agents).reduce((a, v) => a + v.cost, 0);
+  const one = (v) => v.toLocaleString(locale, { maximumFractionDigits: 1 });
+  const stageItems = Object.entries(stages).filter(([, v]) => v > 0.00005)
+    .sort((a, b) => b[1] - a[1] || STAGE_ORDER.indexOf(a[0]) - STAGE_ORDER.indexOf(b[0]))
+    .map(([key, v]) => ({ label: t.stage[key] ?? key, cost: v }));
+  const mainCost = Object.values(buckets).reduce((a, v) => a + v.cost, 0);
+  const bucketItems = BUCKET_ORDER.map((key) => {
+    const v = buckets[key] ?? { cost: 0, tokens: 0, messages: 0 };
+    return { label: t.bucket[key], cost: v.cost, title: `${k(v.tokens)} ${t.tokens.toLowerCase()} · ${num(v.messages)} ${t.replies.toLowerCase()}` };
+  });
+  const agentRows = Object.entries(agents).sort((a, b) => b[1].cost - a[1].cost).map(([name, v]) =>
+    `<tr><td>${esc(name)}</td><td>${num(runs[name] ?? 0)}</td><td>${num(v.messages)}</td><td>${k(v.tokens)}</td><td>${money(v.cost)}</td><td>${pct(v.cost, cost)}</td></tr>`).join('');
+  return `<section><h2>${esc(t.where)}</h2><p class="note" style="margin:-4px 0 14px">${esc(t.whereHint)}</p>
+    <div class="tiles">
+      ${tile(num(sessions), t.sessions, sessions ? `${money(cost / sessions)} ${esc(t.perSession)}` : '')}
+      ${tile(num(compactions), t.compactions, sessions ? `${one(compactions / sessions)} ${esc(t.perSession)}` : '')}
+      ${tile(num(runCount), t.runs, esc(fill(t.ofCost, { pct: pct(agentCost, cost) })))}
+    </div>
+    <div class="block" style="margin-top:22px"><h3>${esc(t.byStage)}</h3><p class="hint">${esc(t.byStageHint)}</p>${stageItems.length ? bars(stageItems, cost) : `<p class="note">${esc(t.emptyRange)}</p>`}</div>
+    <div class="block"><h3>${esc(t.byContext)}</h3><p class="hint">${esc(t.byContextHint)}</p>${bars(bucketItems, mainCost)}</div>
+    <div class="block"><h3>${esc(t.byAgent)}</h3><p class="hint">${esc(t.byAgentHint)}</p>${agentRows ? `<div class="scroll"><table><thead><tr><th>${esc(t.agent)}</th><th>${esc(t.runs)}</th><th>${esc(t.replies)}</th><th>${esc(t.tokens)}</th><th>${esc(t.cost)}</th><th>${esc(t.share)}</th></tr></thead><tbody>${agentRows}</tbody></table></div>` : `<p class="note">${esc(t.noAgents)}</p>`}</div>
+    <p class="note" style="margin:16px 0 0">${esc(t.workNote)}</p>
+  </section>`;
 };
 
 const modelTable = (rows) => {
@@ -315,8 +396,9 @@ const render = () => {
       ${chart('c-tok', t.tokChart, t.tokHint, stacked(rows, 'tokens', k))}
       ${chart('c-cum', t.cumChart, t.cumHint, cumulative(rows))}
     </div></section>` : ''}
+    ${any ? where(rows) : ''}
     ${comparison()}
-    ${any ? `<section><h2>${esc(t.table)}</h2>${modelTable(rows)}<p class="note" style="margin:12px 0 0">${esc(t.yardstick)}</p>${REPORT.unpriced.length ? `<div class="warn">${esc(t.unpriced)} ${REPORT.unpriced.map(esc).join(', ')}</div>` : ''}</section>` : ''}`;
+    ${any ? `<section><h2>${esc(t.table)}</h2><div class="scroll">${modelTable(rows)}</div><p class="note" style="margin:12px 0 0">${esc(t.yardstick)}</p>${REPORT.unpriced.length ? `<div class="warn">${esc(t.unpriced)} ${REPORT.unpriced.map(esc).join(', ')}</div>` : ''}</section>` : ''}`;
 
   for (const b of app.querySelectorAll('#ranges button')) b.onclick = () => { state.range = b.dataset.range; render(); };
   for (const b of app.querySelectorAll('#legend .chip')) b.onclick = () => {

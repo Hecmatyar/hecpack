@@ -15,9 +15,10 @@ What every main session needs, whatever its task. Injected by the hecpack contex
 ## Keeping docs current
 
 - The project's own rules live in `.claude/hecpack/` (`stack.md`, `project-map.md`) and the files `.claude/hecpack/context-map.json` lists. A task that adds, renames or removes a folder the project map lists, or changes the stack, updates them and says so in its report.
-- At a task's wrap-up (the user says it worked), save only what helps future tasks: a reusable recipe or an approved approach, an API gotcha for the versions in use, a broad user preference; to the doc that owns the topic. A rule lives in one doc; other docs keep one pointer sentence to it. Docs hold the current rule only, no history.
+- At a task's wrap-up (the user says it worked), review the chat yourself, without asking first, and save only what helps future tasks: a reusable recipe or an approved approach, an API gotcha for the versions in use, a broad user preference; to the doc that owns the topic, replacing an outdated entry instead of adding one. Skip one-off details and anything already in code or docs. Reply with a one-to-three-line list of what was saved, or «nothing worth saving».
+- A rule lives in one doc; other docs keep one pointer sentence to it. Docs hold the current rule only, no history.
 
 ## Progress and reports
 
-- While working: no text between tool calls except what the user needs now (a question, a problem that changes the plan, something they must do), one line each.
-- Final report, in this order: the result in one line; the files changed, a few words each; validation (what ran, pass or fail); the reviewer's open points only when they need the user; «also fixed» and «could be better» only when there is something; one line with the next step. About one screen, no restating the task.
+- While working: no text between tool calls except what the user needs now (a question, a problem that changes the plan, something they must do), one line each; no progress lines (what starts, what was found, what comes next) and no narration of reasoning. Where the app shows a progress checklist (a project thread), messages are only for what the user must act on and for the result.
+- Final report, in this order: the result in one line; the files changed, a few words each; validation (what ran, pass or fail); the reviewer's open points only when they need the user; «also fixed» and «could be better» only when there is something; one line with the next step. About one screen: a bigger task gets a longer file list, not more prose; no restating the task, no alternatives considered, nothing an earlier message already said. A sub-session's message to its coordinator is two or three sentences: the result and what the user has to do.

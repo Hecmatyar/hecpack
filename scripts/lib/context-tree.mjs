@@ -11,6 +11,7 @@ import { homedir } from 'node:os';
 import { join, posix, relative, resolve } from 'node:path';
 import { findDocs } from './docs.mjs';
 import { projectSlug } from './usage.mjs';
+import { HOOK_PARTS } from '../hooks/context.mjs';
 
 export const tok = (text) => Math.round(text.length / 4);
 
@@ -361,7 +362,7 @@ export const contextTree = ({ root, claudeHome, pluginRoot }) => {
   };
 
   if (manifest?.types) {
-    const parts = manifest.parts ?? { prompt: 4, agent: 4 };
+    const parts = { prompt: HOOK_PARTS, agent: HOOK_PARTS };
     const limit = manifest.limit ?? 10000;
     for (const [type, specs] of Object.entries(manifest.types)) {
       const tags = Object.entries(manifest.tags ?? {}).filter(([, value]) => value === type).map(([tag]) => tag);

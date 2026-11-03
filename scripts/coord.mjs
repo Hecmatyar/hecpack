@@ -3,7 +3,10 @@
 // file: the briefs and reports in tmp/handoff/, the background sessions Claude Code runs for the project
 // (`claude agents --json`), and the git worktrees. Read-only.
 //
-//   node coord.mjs --project <dir> [--json] [--claude-bin claude]
+//   node coord.mjs --project <dir> [--all] [--json] [--claude-bin claude]
+//
+// tmp/handoff/ also keeps the handoff notes of the chain of chats; a note older than a day with no session,
+// worktree or fresh report is not a running piece, so it is only counted (--all lists it).
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -11,10 +14,10 @@ import { basename, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const parseArgs = (argv) => {
-  const args = { json: false };
+  const args = { json: false, all: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--json') args.json = true;
+    if (arg === '--json' || arg === '--all') args[arg.slice(2)] = true;
     else if (arg.startsWith('--')) {
       const [key, inline] = arg.slice(2).split('=');
       args[key.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = inline ?? argv[++i];
@@ -56,7 +59,7 @@ export const worktreesOf = (root) => {
   })).filter((tree) => tree.path && resolve(tree.path) !== root);
 };
 
-export const coord = ({ project, claudeBin = 'claude', now = Date.now() }) => {
+export const coord = ({ project, claudeBin = 'claude', now = Date.now(), all = false }) => {
   const root = resolve(project ?? process.cwd());
   const dir = join(root, 'tmp/handoff');
   const names = existsSync(dir) ? readdirSync(dir).filter((name) => name.endsWith('.md')) : [];
@@ -82,11 +85,15 @@ export const coord = ({ project, claudeBin = 'claude', now = Date.now() }) => {
       };
     })
     .sort((a, b) => a.briefAgeMin - b.briefAgeMin);
+  const DAY = 1440;
+  const live = (piece) => piece.session || piece.worktree || piece.briefAgeMin < DAY || (piece.report && piece.report.ageMin < DAY);
+  const shown = all ? pieces : pieces.filter(live);
   const known = new Set(pieces.map((piece) => piece.session?.id).filter(Boolean));
   const coordinatorFile = join(dir, 'coordinator.md');
   return {
     root,
-    pieces,
+    pieces: shown,
+    older: pieces.length - shown.length,
     otherSessions: sessions.filter((item) => item.kind !== 'interactive' && !known.has(item.id)),
     worktrees: worktrees.filter((tree) => !pieces.some((piece) => piece.worktree?.path === tree.path)),
     sessionsAvailable: available,
@@ -98,7 +105,7 @@ const age = (min) => (min < 60 ? `${min} min` : min < 1440 ? `${Math.round(min /
 
 export const summary = (state) => {
   const lines = [];
-  if (!state.pieces.length) lines.push('No briefs in tmp/handoff/: nothing is being coordinated.');
+  if (!state.pieces.length) lines.push(`No ${state.older ? 'recent ' : ''}briefs in tmp/handoff/: nothing is being coordinated.`);
   for (const piece of state.pieces) {
     const bits = [
       piece.session ? `session ${piece.session.status}` : 'no session',
@@ -109,6 +116,7 @@ export const summary = (state) => {
   }
   for (const item of state.otherSessions) lines.push(`- background session ${item.name ?? item.id} (${item.status}) with no brief`);
   for (const tree of state.worktrees) lines.push(`- worktree ${tree.path} (${tree.branch ?? 'detached'}) with no brief`);
+  if (state.older) lines.push(`${state.older} older notes in tmp/handoff/ with no session, worktree or fresh report (--all lists them).`);
   if (!state.sessionsAvailable) lines.push('Background sessions: `claude agents` is not available here, only the files are shown.');
   if (state.coordinator) lines.push(`Coordinator state: ${state.coordinator}`);
   return lines.join('\n');

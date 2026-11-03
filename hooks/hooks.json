@@ -22,6 +22,26 @@
             "type": "command",
             "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 4",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 5",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 6",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 7",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 8",
+            "timeout": 10
           }
         ]
       }
@@ -47,6 +67,26 @@
           {
             "type": "command",
             "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 4",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 5",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 6",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 7",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/context.mjs\" --part 8",
             "timeout": 10
           }
         ]
@@ -96,6 +136,18 @@
           {
             "type": "command",
             "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/agent-model.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^hecpack:designer$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/designer-report.mjs\"",
             "timeout": 10
           }
         ]
