@@ -13,7 +13,7 @@ const INSTRUCTION_FILES = [
 const RULE_DIRS = ['.claude/rules', '.claude/docs', '.cursor/rules', '.agents/rules', 'docs/agents', 'docs/ai'];
 const DOC_DIRS = ['docs', 'doc', '.github'];
 const DOC_NAME = /contribut|convention|guideline|architect|style|workflow|rules|agents|principle|coding|standard|review|testing|process|handbook/i;
-const MAX_DOCS = 40;
+const MAX_DOCS = 60;
 const MAX_DEPTH = 4;
 const SKIP = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', 'tmp', 'design-canvases', 'design-proposals', '__pycache__']);
 
@@ -81,10 +81,12 @@ export const findDocs = (root, workspaces = []) => {
     files.push(path);
   };
   for (const dir of ['', ...workspaces]) for (const file of INSTRUCTION_FILES) add(join(root, dir, file));
+  // Shallow files first: a folder's own session.md or workflow.md matters more than a pattern three levels down.
+  const byDepth = (a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b);
   for (const dir of RULE_DIRS) {
     const found = [];
     walk(join(root, dir), 0, found);
-    found.forEach(add);
+    found.sort(byDepth).forEach(add);
   }
   const agents = join(root, '.claude/agents');
   if (isDir(agents)) for (const name of readdirSync(agents).sort()) if (name.endsWith('.md')) add(join(agents, name));
