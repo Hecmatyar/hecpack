@@ -1,1 +1,1 @@
-{ "hooks": { "UserPromptSubmit": [] } }
+{ "hooks": { "UserPromptSubmit": [ { "hooks": [ { "type": "command", "command": "cat .claude/rules/team.md" } ] } ] } }

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // PreToolUse (Agent): a `model` override in an Agent call must fit the agent's row in `agentModels` of the
 // project's .claude/hecpack/config.json (`models` lists the allowed ones, else `model`). Agents without a row
-// are free. A project without the config is not set up by hecpack: the hook stays silent.
+// are free. A hecpack agent the project left out (`without`, chosen at /init when another plugin does that
+// job) is refused. A project without the config is not set up by hecpack: the hook stays silent.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -20,14 +21,17 @@ export const modelReason = (agentModels, type, model) => {
   );
 };
 
+export const withoutReason = (without, type) =>
+  Array.isArray(without) && without.includes(type) && `${type} is left out in this project (without in ${CONFIG}): another plugin's agent or skill does this job here.`;
+
 const main = () => {
   const input = JSON.parse(readFileSync(0, 'utf8'));
   const root = resolve(process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? '.');
   const file = join(root, CONFIG);
   if (!existsSync(file)) return;
-  const { agentModels } = JSON.parse(readFileSync(file, 'utf8'));
+  const { agentModels, without } = JSON.parse(readFileSync(file, 'utf8'));
   const { subagent_type: type, model } = input.tool_input ?? {};
-  const reason = modelReason(agentModels, type, model);
+  const reason = withoutReason(without, type) || modelReason(agentModels, type, model);
   if (!reason) return;
   process.stdout.write(
     JSON.stringify({

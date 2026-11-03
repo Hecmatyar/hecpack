@@ -3,7 +3,7 @@
 // action and diff), so the skill can show it and ask; with --write it writes the files.
 //
 //   node init.mjs --project <dir> --level lite|standard|deep [--techs id,id] [--rules path,path]
-//                 [--modules id,id] [--lang <code>] [--write] [--force] [--json]
+//                 [--modules id,id] [--without designer,e2e-runner] [--lang <code>] [--write] [--force] [--json]
 //
 // Writing rules: a new file is created; CLAUDE.md gets its hecpack section added or replaced and nothing
 // else in it changes; a generated file (.claude/hecpack/*) that exists with other content is kept unless
@@ -14,13 +14,13 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEVELS, plan } from './lib/plan.mjs';
+import { agentIds, LEVELS, plan } from './lib/plan.mjs';
 import { analyze, checkTechs } from './lib/setup.mjs';
 
 const list = (value) => String(value).split(',').map((item) => item.trim()).filter(Boolean);
 
 export const parseArgs = (argv) => {
-  const args = { level: undefined, lang: 'en', write: false, force: false, json: false, techs: undefined, rules: [], modules: [] };
+  const args = { level: undefined, lang: 'en', write: false, force: false, json: false, techs: undefined, rules: [], modules: [], without: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (['--write', '--force', '--json'].includes(arg)) args[arg.slice(2)] = true;
@@ -33,6 +33,7 @@ export const parseArgs = (argv) => {
   if (args.techs !== undefined) args.techs = list(args.techs);
   args.rules = Array.isArray(args.rules) ? args.rules : list(args.rules);
   args.modules = Array.isArray(args.modules) ? args.modules : list(args.modules);
+  args.without = agentIds(Array.isArray(args.without) ? args.without : list(args.without));
   return args;
 };
 
@@ -59,7 +60,7 @@ export const init = (args) => {
   const readProject = (path) => (existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : undefined);
   const date = (args.date ?? new Date().toISOString()).slice(0, 10);
   const files = plan({
-    detection, sources, level, language: args.lang, techIds: args.techs, rules: args.rules, modules: args.modules, readProject, date,
+    detection, sources, level, language: args.lang, techIds: args.techs, rules: args.rules, modules: args.modules, without: args.without, readProject, date,
   }).map((file) => {
     const before = readProject(file.path);
     const kept = file.action === 'update' && GENERATED.test(file.path) && !args.force;
@@ -84,6 +85,7 @@ export const init = (args) => {
     techs: (args.techs ?? detection.techs.map((tech) => tech.id)),
     rules: args.rules,
     modules: args.modules,
+    without: args.without,
     written: args.write,
     files: files.map(({ content, ...rest }) => rest),
   };

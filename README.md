@@ -17,8 +17,8 @@ claude plugin install hecpack@hecpack
 
 | Command | What it does | Touches the project |
 | --- | --- | --- |
-| `/hecpack:preview` | Reads the stack and opens a local page: technologies found, the recommended level, where the rules for each technology can come from, the rule documents you already have, the diff of every file each level would write, the plugins worth installing. `--try` writes the files into a throwaway clone. | No |
-| `/hecpack:init` | A guided setup: one round of questions (level, technologies), a pass over the rule documents you already have (what to carry over, what conflicts and why), the plan with diffs, then the files. | Yes, after your confirmation |
+| `/hecpack:preview` | Reads the stack and opens a local page: technologies found, the recommended level, where the rules for each technology can come from, the rule documents you already have, the installed plugins and skills that clash with each other or with hecpack, the diff of every file each level would write, the plugins worth installing. `--try` writes the files into a throwaway clone. | No |
+| `/hecpack:init` | A guided setup: one round of questions (level, technologies), a pass over the rule documents you already have (what to carry over, what conflicts and why) and over the installed plugins and skills (each clash compared, with the one to keep), the plan with diffs, then the files. | Yes, after your confirmation |
 | `/hecpack:metrics` | A snapshot of the project's shape (files, lines, tests, big files, TODOs) and rhythm (commits, lines and files per commit, fix share, reverts), compared with the previous snapshot. Take one right after `/init` and another after a few weeks. | No (snapshots live in the plugin's data folder) |
 | `/hecpack:usage` | A local page with the tokens and money Claude Code spent in the project, per model and per day, built from the transcripts Claude Code already keeps: period filter, models toggled in the legend, cost and tokens per day, cumulative cost, before/after the day hecpack was set up, a per-model table. The first run counts the last 30 days; after that a hook at each session start adds the new sessions in the background, and the totals outlive the transcripts Claude Code deletes after a month. No model call: the page opens instantly, and its file can be bookmarked. | No (page and cache live in the plugin's data folder) |
 | `/hecpack:context` | A local page with the context tree: for each mode of the main session and each agent, what loads at start (CLAUDE.md and its imports, rules without paths, the memory index, the agent and skill lists, the hook's files, the agent's own instructions) and what it may read by link. Plus the files that cost most at start, the rules by path, the docs nobody reads, the repeated text and the change since the last run. Tokens are characters / 4. | No (page lives in the plugin's data folder) |
@@ -50,7 +50,13 @@ claude plugin install hecpack@hecpack
 
 ## Coexisting with your own setup
 
-If your project already injects its own rules or has agents called `architect`, `thinker` or `checker`, the preview and the init say so: hecpack's agents are namespaced (`hecpack:architect`), but two context hooks would load overlapping rules, so keep one source per rule.
+`/preview` and `/init` check what is already installed: your plugins (on and off), your own and the project's skills, agents, commands, hooks and MCP servers. They find where these overlap with each other and with what hecpack adds:
+
+- **clash**: two things that start by themselves for the same job (two design skills the model may pick, two agents that review), or two hooks on the moment hecpack injects its rules or checks agent calls;
+- **overlap**: the same job in commands you call by name, a project command that hides your own one with the same name, an MCP server set up twice;
+- **works together**: something hecpack calls on when it is there, such as the `frontend-design` skill inside the designer.
+
+`/init` reads each side of a clash, compares what they do, what they cost and how they fit the stack, recommends the one to keep (or a split, written to `.claude/hecpack/rules/coexist.md`) and asks you. When another plugin does design or e2e better, `--without designer` or `--without e2e-runner` leaves hecpack's agent out and its hook refuses calls to it. hecpack never disables or removes anything of yours: it gives you the `claude plugin disable` command or names the file.
 
 hecpack sets no permissions and no git policy: what the agent may run, commit or push comes from your own `settings.json` and environment, and `/init` never touches `.claude/settings.json`.
 

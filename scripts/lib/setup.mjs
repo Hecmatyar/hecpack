@@ -5,14 +5,15 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { detect } from './detect.mjs';
-import { recommendLevel, warnings } from './plan.mjs';
+import { agentsFor, recommendLevel, warnings } from './plan.mjs';
+import { audit } from './audit.mjs';
 import { findSources, readEnabled, readMarketplaces } from './sources.mjs';
 
 export const PLUGIN_ROOT = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 export const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
 export const pluginVersion = () => readJson(join(PLUGIN_ROOT, '.claude-plugin/plugin.json')).version;
 
-export const analyze = ({ project, claudeHome }) => {
+export const analyze = ({ project, claudeHome, level }) => {
   const root = resolve(project ?? process.cwd());
   const catalog = readJson(join(PLUGIN_ROOT, 'catalog/technologies.json'));
   const { packs } = readJson(join(PLUGIN_ROOT, 'catalog/packs.json'));
@@ -30,12 +31,16 @@ export const analyze = ({ project, claudeHome }) => {
       }
     }
   }
+  const recommended = recommendLevel(detection);
   return {
     root,
     detection,
     sources,
     bySource,
-    recommended: recommendLevel(detection),
+    recommended,
+    // What is installed around the project, against what hecpack would add at the chosen (else the
+    // recommended) level, before anything is left out.
+    audit: audit({ root, claudeHome, pluginRoot: PLUGIN_ROOT, agentList: agentsFor(level ?? recommended.level, detection.techs) }),
     suggestedPlugins: suggested,
     warnings: warnings(detection.claude),
   };
@@ -48,7 +53,7 @@ export const checkTechs = (detection, techIds) => {
 
 // The compact JSON the skills read before they ask the user anything.
 export const scanSummary = (analysis) => {
-  const { detection, bySource, recommended, suggestedPlugins, warnings: warn } = analysis;
+  const { detection, bySource, recommended, suggestedPlugins, warnings: warn, audit: installed } = analysis;
   return {
     hecpack: pluginVersion(),
     project: { name: detection.name, root: analysis.root, packageManager: detection.packageManager, workspaces: detection.workspaces },
@@ -64,6 +69,7 @@ export const scanSummary = (analysis) => {
     suggestedPlugins,
     claude: detection.claude,
     docs: detection.docs,
+    audit: installed,
     warnings: warn,
   };
 };

@@ -20,7 +20,9 @@ const snapshot = (dir) => {
 };
 
 test('arguments', () => {
-  assert.deepEqual(parseArgs(['deep', '--techs', 'expo,nx', '--lang=ru']), { level: 'deep', lang: 'ru', try: false, open: false, techs: ['expo', 'nx'] });
+  assert.deepEqual(parseArgs(['deep', '--techs', 'expo,nx', '--lang=ru']), { level: 'deep', lang: 'ru', try: false, open: false, techs: ['expo', 'nx'], without: [] });
+  assert.deepEqual(parseArgs(['--without', 'designer']).without, ['hecpack:designer']);
+  assert.throws(() => parseArgs(['--without', 'architect']), /only hecpack:designer/);
   assert.throws(() => parseArgs(['--level', 'max']));
 });
 
@@ -30,6 +32,7 @@ test('preview never touches the project and writes the page, report and diffs', 
   const out = scratch();
   const report = preview({ project, out, level: 'standard', lang: 'ru', claudeHome: claudeHome() });
   assert.deepEqual(snapshot(project), before);
+  assert.ok(Array.isArray(report.audit.conflicts) && Array.isArray(report.audit.plugins), 'the report carries the audit');
   const html = readFileSync(report.paths.page, 'utf8');
   assert.ok(html.includes('"lang":"ru"') && !html.includes('/*__REPORT__*/'));
   assert.doesNotMatch(html.split('const REPORT = ')[1].split('\n')[0], /<\//, 'the inline report cannot close the script');

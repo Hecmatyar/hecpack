@@ -4,7 +4,7 @@
 // writes them, their diffs against the project, report.json and index.html into its own folder.
 //
 //   node preview.mjs --project <dir> --out <dir> [--level lite|standard|deep] [--lang <code>]
-//                    [--techs id,id] [--try] [--open]
+//                    [--techs id,id] [--without designer,e2e-runner] [--try] [--open]
 //
 // --try also clones the project's committed state (git clone --local) next to the report and writes the
 // files of the chosen level there, so the setup can be tried in a throwaway copy.
@@ -14,7 +14,8 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { agentsFor, LEVEL_INFO, LEVELS, MODULES, plan } from './lib/plan.mjs';
+import { agentIds, agentsFor, LEVEL_INFO, LEVELS, MODULES, plan } from './lib/plan.mjs';
+import { auditText } from './lib/audit.mjs';
 import { analyze, checkTechs, PLUGIN_ROOT, pluginVersion } from './lib/setup.mjs';
 
 export const parseArgs = (argv) => {
@@ -29,6 +30,7 @@ export const parseArgs = (argv) => {
   }
   if (args.level && !LEVELS.includes(args.level)) throw new Error(`--level must be one of ${LEVELS.join(', ')}`);
   if (args.techs) args.techs = String(args.techs).split(',').map((id) => id.trim()).filter(Boolean);
+  args.without = agentIds(args.without ? String(args.without).split(',').map((id) => id.trim()).filter(Boolean) : []);
   return args;
 };
 
@@ -80,7 +82,7 @@ export const preview = (args) => {
   const levels = {};
   for (const level of LEVELS) {
     // Every optional module is planned too; the page shows them unticked and /init takes --modules.
-    const files = plan({ detection, sources, level, language: args.lang, techIds: args.techs, modules: Object.keys(MODULES), readProject, date });
+    const files = plan({ detection, sources, level, language: args.lang, techIds: args.techs, modules: Object.keys(MODULES), without: args.without, readProject, date });
     const chosenTechs = args.techs ? detection.techs.filter((tech) => args.techs.includes(tech.id)) : detection.techs;
     levels[level] = {
       info: LEVEL_INFO[level],
@@ -118,11 +120,12 @@ export const preview = (args) => {
       packageManager: detection.packageManager,
       workspaces: detection.workspaces,
     },
-    selection: { level, techs: args.techs ?? detection.techs.map((tech) => tech.id) },
+    selection: { level, techs: args.techs ?? detection.techs.map((tech) => tech.id), without: args.without },
     recommended: analysis.recommended,
     suggestedPlugins: analysis.suggestedPlugins,
     modules: MODULES,
     docs: detection.docs,
+    audit: analysis.audit,
     techs: detection.techs.map((tech) => ({
       id: tech.id,
       label: tech.label,
@@ -162,6 +165,7 @@ export const summary = (report) => {
     if (named.length) lines.push(`- ${tech.label}: ${named.join(', ')}`);
   }
   for (const warning of report.warnings) lines.push(`Warning: ${warning.text}`);
+  lines.push(auditText(report.audit));
   lines.push(`Page: ${report.paths.page}`);
   if (report.paths.sandbox) lines.push(`Sandbox with the ${report.selection.level} files: ${report.paths.sandbox}`);
   return lines.join('\n');

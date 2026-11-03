@@ -21,6 +21,8 @@ test('arguments', () => {
   assert.deepEqual(args.rules, ['docs/a.md']);
   assert.deepEqual(args.modules, ['format-hooks']);
   assert.equal(args.write, true);
+  assert.deepEqual(args.without, []);
+  assert.deepEqual(parseArgs(['--without', 'designer,e2e-runner']).without, ['hecpack:designer', 'hecpack:e2e-runner']);
   assert.throws(() => parseArgs(['--level', 'huge']));
 });
 

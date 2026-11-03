@@ -1,7 +1,7 @@
 ---
 name: preview
-description: Show what hecpack would set up in this project without changing it. Detects the stack, recommends a level, finds rules and plugins for each technology, lists the rule documents already in the project, plans the files for the lite, standard and deep levels and opens a local page with the choices and diffs. Use when the user runs /hecpack:preview or asks what hecpack would do here.
-argument-hint: "[--level lite|standard|deep] [--techs id,id] [--try]"
+description: Show what hecpack would set up in this project without changing it. Detects the stack, recommends a level, finds rules and plugins for each technology, lists the rule documents already in the project, checks the installed plugins, skills and hooks against each other and against hecpack, plans the files for the lite, standard and deep levels and opens a local page with the choices and diffs. Use when the user runs /hecpack:preview or asks what hecpack would do here.
+argument-hint: "[--level lite|standard|deep] [--techs id,id] [--without designer,e2e-runner] [--try]"
 disable-model-invocation: true
 allowed-tools: Bash(node:*), Read
 ---
@@ -22,6 +22,8 @@ A dry run of the hecpack setup. **Never write, move or delete anything in the pr
 
 3. The summary also lists the rule documents already in the project. When there are any, read the ones under 300 lines (Read) and hecpack's core (`${CLAUDE_PLUGIN_ROOT}/core/session.md`, `workflow.md`) and add three or four lines: what the project's rules add that hecpack lacks (to carry over at `/hecpack:init`), and where they contradict hecpack (one line per conflict: the two rules and the trade-off). Longer documents: name them and say `/hecpack:init` goes through them in full. Change nothing.
 
-4. If `--try` was given, tell the user to open a new Claude Code session in the sandbox folder the summary names to try the setup there.
+4. The summary ends with what is installed and where it overlaps (`clash`: both start by themselves for the same job, or two hooks run at the same moment; `overlap`: called by name only, or a shadowed name; `works together`: hecpack calls on it). For each clash, one or two lines from the descriptions in the summary and on the page: what each does better and your pick for this project. Read an item's file only when the descriptions do not settle it, at most four files (`report.json` in the page's folder has each item's `file`). Say that `/hecpack:init` asks about each clash, that the page's "leave hecpack's out" box adds `--without` to the init command, and that nothing is disabled or removed for the user.
+
+5. If `--try` was given, tell the user to open a new Claude Code session in the sandbox folder the summary names to try the setup there.
 
 End with one line: `/hecpack:init` sets the project up with the selection from the page (the page shows the exact command). If the script fails, show its error line and stop.

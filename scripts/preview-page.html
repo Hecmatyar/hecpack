@@ -65,6 +65,16 @@ pre .h { color: var(--muted); }
 .cmd code { flex: 1; min-width: 0; font: 13px var(--mono); background: var(--bg); padding: 8px 10px; border-radius: 8px; overflow-x: auto; white-space: nowrap; }
 .cmd button { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
 .label { font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+.conflict { border-top: 1px solid var(--line); padding: 12px 0; }
+.conflict:first-of-type { border-top: 0; }
+.conflict h3 { font-size: 15px; margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.badge.clash { background: var(--warn); color: var(--warn-text); }
+.badge.together { background: var(--add); color: var(--add-text); }
+.items { list-style: none; margin: 6px 0 0; padding: 0; }
+.items li { padding: 3px 0; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.items .who { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.items .what { color: var(--muted); font-size: 13px; flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+.items label { font-size: 13px; white-space: nowrap; }
 .label:first-child { margin-top: 0; }
 @media (max-width: 720px) { .hide-sm { display: none; } td, th { padding: 8px 4px; } .chip { white-space: normal; } }
 </style>
@@ -86,6 +96,27 @@ const T = {
     lite: 'Lite', standard: 'Standard', deep: 'Deep', existing: 'Claude setup already here',
     recommended: 'recommended', docs: 'Rules already in this project', docsNote: '/hecpack:init reads these and tells you what to carry over and what conflicts with hecpack; nothing is replaced without your word.',
     topics: 'touches', optional: 'optional', modules: 'Optional modules',
+    installed: 'Already installed', installedNote: 'Plugins and your own skills, agents, commands and hooks, checked against each other and against what hecpack adds. /hecpack:init compares each clash and recommends what to keep; nothing is removed for you.',
+    plugins: 'Plugins', yours: 'Your own', user: 'user', project: 'project', off: 'off', noConflicts: 'Nothing here overlaps with each other or with hecpack.',
+    clash: 'clash', overlap: 'overlap', together: 'works together', withHecpack: 'with hecpack', leaveOut: "leave hecpack's out", usedBy: 'used by {agent}',
+    types: { skill: 'skill', command: 'command', agent: 'agent', hook: 'hook', mcp: 'MCP server', core: 'core rules' },
+    count: {
+      skill: { one: '{n} skill', other: '{n} skills' }, command: { one: '{n} command', other: '{n} commands' },
+      agent: { one: '{n} agent', other: '{n} agents' }, hook: { one: '{n} hook', other: '{n} hooks' },
+      mcp: { one: '{n} MCP server', other: '{n} MCP servers' },
+    },
+    titles: { role: 'Same job: {role}', hook: 'Hooks on {event}', name: 'Same name: {name}', mcp: 'Same MCP server: {name}' },
+    roles: { workflow: 'workflow', planning: 'planning', review: 'review', debugging: 'debugging', validation: 'checks', e2e: 'e2e tests', design: 'design', context: 'context', coordination: 'coordination', usage: 'usage' },
+    hints: {
+      'role-clash': 'Both can start by themselves, so the model may pick either one for the same task. Keep one for this job, or give each a clear part.',
+      'role-overlap': 'These run only when called by name, so they do not get in each other\'s way; use the one you prefer.',
+      'role-together': 'hecpack calls on these when they are installed: keep them.',
+      'hook-clash': 'Both add to the same moment: rules may load twice and cost tokens on every prompt, or two checks may stop one call.',
+      'hook-overlap': 'Several sources run hooks on this event; check they do not repeat each other.',
+      'name-overlap': 'User and project components share one namespace: the project\'s one hides the user\'s.',
+      'name-hecpack': 'A brief has to name hecpack\'s with its prefix (hecpack:{name}).',
+      'mcp-overlap': 'The same server runs twice and its tools show up twice.',
+    },
     info: {}, warn: {},
   },
 };
@@ -96,7 +127,9 @@ const state = {
   plugins: new Set(REPORT.techs.flatMap((tech) => tech.sources)
     .filter((s) => s.kind === 'plugin' && s.primary && s.tier === 'official' && !s.enabled).map((s) => s.id)),
   modules: new Set(),
+  without: new Set(REPORT.selection.without ?? []),
 };
+const fill = (text, values) => text.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
 const esc = (text) => String(text ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const chip = (source) => {
@@ -119,12 +152,50 @@ const commands = () => {
   const picked = all.filter((id) => state.techs.has(id));
   const techArg = picked.length === all.length ? '' : ` --techs ${picked.join(',')}`;
   const moduleArg = state.modules.size ? ` --modules ${[...state.modules].join(',')}` : '';
-  const rerun = `/hecpack:preview --level ${state.level}${techArg}`;
+  const withoutArg = state.without.size ? ` --without ${[...state.without].map((id) => id.replace(/^hecpack:/, '')).join(',')}` : '';
+  const rerun = `/hecpack:preview --level ${state.level}${techArg}${withoutArg}`;
   const installs = [...state.plugins].map((id) => `claude plugin install ${id}`);
-  return { rerun, installs, tryit: `${rerun} --try`, init: `/hecpack:init --level ${state.level}${techArg}${moduleArg}` };
+  return { rerun, installs, tryit: `${rerun} --try`, init: `/hecpack:init --level ${state.level}${techArg}${moduleArg}${withoutArg}` };
 };
 
 const cmd = (text) => `<div class="cmd"><code>${esc(text)}</code><button data-copy="${esc(text)}">${t.copy}</button></div>`;
+
+const OPTIONAL = ['designer', 'e2e-runner'];
+const plural = new Intl.PluralRules(document.documentElement.lang || 'en');
+const counts = (byType) => Object.entries(byType ?? {}).map(([type, n]) => {
+  const forms = t.count[type];
+  return forms ? fill(forms[plural.select(n)] ?? forms.other, { n }) : `${n} ${type}`;
+}).join(' · ');
+
+const conflictHtml = (conflict) => {
+  const title = fill(t.titles[conflict.kind], { role: t.roles[conflict.role] ?? conflict.role, event: conflict.event, name: conflict.name });
+  const named = conflict.kind === 'name' && conflict.withHecpack ? [conflict.name.replace(/^agent:/, '')] : conflict.sameName ?? [];
+  const hint = [conflict.kind === 'name' && conflict.withHecpack ? '' : t.hints[`${conflict.kind}-${conflict.severity}`], ...named.map((name) => fill(t.hints['name-hecpack'], { name }))].filter(Boolean).join(' ');
+  const item = (it) => {
+    const optional = it.source === 'hecpack' && it.type === 'agent' && OPTIONAL.includes(it.name);
+    const id = `hecpack:${it.name}`;
+    const box = optional ? `<label><input type="checkbox" data-without="${esc(id)}" ${state.without.has(id) ? 'checked' : ''}> ${t.leaveOut}</label>` : '';
+    return `<li class="${optional && state.without.has(id) ? 'off' : ''}"><span class="who">${esc(it.source)} · ${esc(t.types[it.type] ?? it.type)} · <b>${esc(it.name)}</b></span><span class="what">${esc(it.description)}</span>${it.usedBy ? `<span class="tag">${esc(fill(t.usedBy, { agent: it.usedBy }))}</span>` : ''}${box}</li>`;
+  };
+  return `<div class="conflict">
+    <h3><span class="badge ${conflict.severity}">${t[conflict.severity]}</span>${esc(title)}${conflict.withHecpack ? ` <span class="tag">${t.withHecpack}</span>` : ''}</h3>
+    <div class="note">${esc(hint ?? '')}</div>
+    <ul class="items">${conflict.items.map(item).join('')}</ul>
+  </div>`;
+};
+
+const auditHtml = (audit) => {
+  if (!audit) return '';
+  const local = ['user', 'project'].map((who) => (counts(audit.local?.[who]) ? `${t[who]}: ${counts(audit.local[who])}` : '')).filter(Boolean);
+  return `<section>
+    <h2>${t.installed}</h2>
+    <p class="note">${t.installedNote}</p>
+    ${audit.plugins.length ? `<div class="label">${t.plugins}</div><div class="chips">${audit.plugins.map((p) => `<span class="chip ${p.enabled ? '' : 'off'}" title="${esc(p.description)}">${esc(p.name)} <span class="tag">${p.enabled ? esc(counts(p.counts)) : t.off}</span></span>`).join('')}</div>` : ''}
+    ${local.length ? `<div class="label">${t.yours}</div><div class="note">${local.map(esc).join('; ')}</div>` : ''}
+    <div class="label"></div>
+    ${audit.conflicts.length ? audit.conflicts.map(conflictHtml).join('') : `<p class="note">${t.noConflicts}</p>`}
+  </section>`;
+};
 
 const render = () => {
   const level = REPORT.levels[state.level];
@@ -168,13 +239,14 @@ const render = () => {
           <td><div class="chips">${doc.topics.map((topic) => `<span class="chip">${esc(topic)}</span>`).join('')}</div></td></tr>`).join('')}
       </table></div>
     </section>` : ''}
+    ${auditHtml(REPORT.audit)}
     <section>
       <h2>${t.validation}</h2>
       ${REPORT.validation.length ? REPORT.validation.map((v) => cmd(v.command)).join('') : `<p class="note">${t.none}</p>`}
     </section>
     <section>
       <h2>${t.files}</h2>
-      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}<br><span class="tag">Agents: ${(level.agents ?? []).map(esc).join(', ')}</span></p>
+      <p class="levelinfo">${esc(t.info[state.level] ?? level.info)}<br><span class="tag">Agents: ${(level.agents ?? []).filter((agent) => !state.without.has(agent)).map(esc).join(', ')}</span></p>
       ${level.files.filter((file) => !file.module || state.modules.has(file.module)).map((file) => `
         <details class="file">
           <summary><span class="badge ${file.action}">${t[file.action]}</span><span class="path">${esc(file.path)}</span>${file.module ? `<span class="tag">${t.optional}: ${esc(file.module)}</span>` : ''}
@@ -204,10 +276,10 @@ document.addEventListener('click', (event) => {
   }
 });
 document.addEventListener('change', (event) => {
-  const { tech, plugin, module } = event.target.dataset;
-  const set = tech ? state.techs : plugin ? state.plugins : module ? state.modules : null;
+  const { tech, plugin, module, without } = event.target.dataset;
+  const set = tech ? state.techs : plugin ? state.plugins : module ? state.modules : without ? state.without : null;
   if (!set) return;
-  const id = tech ?? plugin ?? module;
+  const id = tech ?? plugin ?? module ?? without;
   if (event.target.checked) set.add(id); else set.delete(id);
   render();
 });
