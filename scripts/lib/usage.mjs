@@ -94,7 +94,7 @@ export const readTranscript = (file) => {
 // not change is not read again, so a run after the first reads only the sessions since. The store also keeps
 // the records of transcripts Claude Code has since removed (it deletes them after `cleanupPeriodDays`, 30 by
 // default), so the history outlives them. `from` is the first day the store counts: a new store starts
-// `historyDays` back (30 by default; 0 for all the transcripts there are), and every run after keeps it.
+// `historyDays` back (7 by default; 0 for all the transcripts there are), and every run after keeps it.
 // `rebuild` starts the store again with a new window; the records of deleted transcripts stay, as far as
 // the window reaches, since they cannot be read again.
 export const STORE_VERSION = 2;
@@ -105,7 +105,7 @@ const dayOf = (ms) => new Date(ms).toISOString().slice(0, 10);
 const pack = (r) => [r.id, r.day, r.model, r.input, r.cacheWrite, r.cacheRead, r.output];
 const unpack = ([id, day, model, input, cacheWrite, cacheRead, output]) => ({ id, day, model, input, cacheWrite, cacheRead, output });
 
-export const readMessages = (files, store, { historyDays = 30, now = Date.now(), rebuild = false } = {}) => {
+export const readMessages = (files, store, { historyDays = 7, now = Date.now(), rebuild = false } = {}) => {
   const known = store?.version === STORE_VERSION ? store : undefined;
   const fresh = !known || rebuild;
   const from = fresh ? (historyDays > 0 ? dayOf(now - (historyDays - 1) * 86400000) : undefined) : known.from;

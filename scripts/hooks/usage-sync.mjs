@@ -3,7 +3,7 @@
 // current whenever it is opened and the history outlives the transcripts Claude Code deletes after a month.
 // Runs in a project hecpack set up, or one where /hecpack:usage was run before; elsewhere it does nothing.
 // Prints nothing (SessionStart output would go into the context) and returns at once: the count runs in a
-// detached process. The first count in a project reads the last 30 days; later ones only the new sessions.
+// detached process. The first count in a project reads the last 7 days; later ones only the new sessions.
 //
 //   node usage-sync.mjs --out <dir>      (the hook passes ${CLAUDE_PLUGIN_DATA}/usage)
 

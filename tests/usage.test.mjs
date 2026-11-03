@@ -18,7 +18,7 @@ test('arguments', () => {
   assert.equal(args.open, true);
   assert.equal(args.historyDays, 0);
   assert.equal(args.rebuild, true);
-  assert.equal(parseArgs([]).historyDays, 30);
+  assert.equal(parseArgs([]).historyDays, 7);
   assert.throws(() => parseArgs(['--history-days', 'month']));
   assert.throws(() => parseArgs(['--marker', 'yesterday']));
 });
@@ -65,15 +65,15 @@ test('the store skips unchanged files and re-reads a changed one', () => {
   assert.equal(third.messages[0].input, 1);
 });
 
-test('a new store counts the last 30 days, keeps that start, and keeps the totals of deleted transcripts', () => {
+test('a new store counts the last 7 days, keeps that start, and keeps the totals of deleted transcripts', () => {
   const dir = scratch();
   const old = join(dir, 'old.jsonl');
   const mixed = join(dir, 'mixed.jsonl');
   writeFileSync(old, line('o', '2026-09-01'));
   utimesSync(old, new Date('2026-09-01'), new Date('2026-09-01'));
-  writeFileSync(mixed, line('m1', '2026-10-01') + line('m2', '2026-10-20'));
+  writeFileSync(mixed, line('m1', '2026-10-01') + line('m2', '2026-10-30'));
   const first = readMessages([old, mixed], undefined, { now: NOW });
-  assert.equal(first.store.from, '2026-10-05');
+  assert.equal(first.store.from, '2026-10-28');
   assert.deepEqual(first.messages.map((m) => m.id), ['m2']);
   assert.equal(first.stats.read, 1, 'a file last written before the window is not read');
 
@@ -82,7 +82,7 @@ test('a new store counts the last 30 days, keeps that start, and keeps the total
   writeFileSync(fresh, line('n', '2026-12-19'));
   utimesSync(fresh, new Date('2026-12-19'), new Date('2026-12-19'));
   const second = readMessages([fresh], first.store, { now: later }); // Claude Code deleted the October files
-  assert.equal(second.store.from, '2026-10-05');
+  assert.equal(second.store.from, '2026-10-28');
   assert.deepEqual(second.messages.map((m) => m.id), ['m2', 'n']);
   assert.equal(second.stats.gone, 1);
   assert.equal(second.store.files[mixed].gone, true);

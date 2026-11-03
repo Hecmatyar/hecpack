@@ -4,10 +4,10 @@
 // keeps under ~/.claude/projects; nothing in the project changes and no model is called.
 //
 //   node usage.mjs --project <dir> --out <dir> [--marker YYYY-MM-DD] [--open] [--json]
-//                  [--history-days 30|all] [--rebuild] [--quiet] [--claude-home <dir>] [--prices <file>]
+//                  [--history-days 7|N|all] [--rebuild] [--quiet] [--claude-home <dir>] [--prices <file>]
 //
 // <out>/<project slug>/ holds store.json (what earlier runs parsed, see lib/usage.mjs), report.json and
-// index.html. The first run for a project counts the last --history-days (30 by default); every later run
+// index.html. The first run for a project counts the last --history-days (7 by default); every later run
 // reads only the transcripts that changed and keeps the ones Claude Code has deleted since. The SessionStart
 // hook (hooks/usage-sync.mjs) runs this with --quiet in the background, so the page is current when opened.
 
@@ -20,7 +20,7 @@ import { PLUGIN_ROOT, pluginVersion } from './lib/setup.mjs';
 import { hecpackMarker, readMessages, transcriptFiles, usageReport, usageText } from './lib/usage.mjs';
 
 export const parseArgs = (argv) => {
-  const args = { open: false, json: false, rebuild: false, quiet: false, historyDays: 30 };
+  const args = { open: false, json: false, rebuild: false, quiet: false, historyDays: 7 };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (['--open', '--json', '--rebuild', '--quiet'].includes(arg)) args[arg.slice(2)] = true;
