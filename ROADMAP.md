@@ -5,7 +5,7 @@
 ### v0.1
 
 - Core rules, agents (architect, thinker, checker), hooks (context injection per task and agent, model limits, handoff after compaction).
-- `/hecpack:preview`: stack detection, sources per technology (hecpack packs, marketplace plugins, context7, local-skill fallback), files for lite / standard / deep with diffs, a local page with selection and commands, `--try` sandbox clone. Checked on a real Nx + Expo + Next monorepo: 14 technologies, nx validation command, warnings about the project's own hooks and agents.
+- `/hecpack:preview`: stack detection, sources per technology (hecpack packs, a plugin already on and named after the technology, context7, local-skill fallback; nothing from the marketplaces is suggested, since a match by a word in a plugin's name was noise), files for lite / standard / deep with diffs, a local page with selection and commands, `--try` sandbox clone. Checked on a real Nx + Expo + Next monorepo: 14 technologies, nx validation command, warnings about the project's own hooks and agents.
 
 ### v0.2
 
@@ -27,7 +27,7 @@
 
 ## Next
 
-1. **Local skills for gaps**: `/init` writes `.claude/skills/<tech>/SKILL.md` for a technology with no pack or plugin, from the installed version's docs (context7) and the project's own code.
+1. **Local skills for gaps**: `/init` writes `.claude/skills/<tech>/SKILL.md` for a technology with no pack or plugin already on, from the installed version's docs (context7) and the project's own code.
 2. **Checks that switch on by project**, from Wayfarer's arch-check made generic, each only when the project has the thing, run with `/hecpack:arch --check`: every locale has every string with the same placeholders and plural forms; every path the docs and the project map name exists; design tokens instead of literal colours, sizes and spacing; a platform pair exports the same API and never imports itself; an index only at a package root; deep imports past a package entry. Locales and doc paths first (kit size, leaves, sideways imports and folder size are in arch since v0.5.0). Plus an opt-in hook that formats an edited file with the project's own formatter.
 3. **First stack packs** as separate plugins in this marketplace: `expo-ios-hig` (HIG checklist, designer agent, render-performance checklist), `nx-monorepo` (Nx tags as the layers of `/hecpack:arch`).
 4. **Enabled plugins**: the page misses plugins enabled outside settings files (for example by the desktop app); find a reliable source.

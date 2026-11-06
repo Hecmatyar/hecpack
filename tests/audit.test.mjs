@@ -109,7 +109,7 @@ test('an optional hecpack agent can be left out, and its calls are refused', () 
   assert.throws(() => agentIds(['checker']), /can be left out/);
   const root = join(FIXTURES, 'ts-vite');
   const detection = detect(root, catalog());
-  const sources = findSources({ techs: detection.techs, packs: packs(), plugins: [], enabled: new Set() });
+  const sources = findSources({ techs: detection.techs, packs: packs(), enabled: new Set() });
   const files = plan({ detection, sources, level: 'standard', without: ['hecpack:designer'], readProject: () => undefined, date: '2026-11-03' });
   const config = JSON.parse(files.find((item) => item.path.endsWith('config.json')).content);
   assert.deepEqual(config.without, ['hecpack:designer']);

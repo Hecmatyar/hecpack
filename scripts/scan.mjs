@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // What is in the project, as JSON: technologies with their sources, validation commands, the recommended
-// level, the plugins worth installing, the Claude setup and the rule documents already there. Read-only;
+// level, the Claude setup and the rule documents already there. Read-only;
 // the /init and /preview skills run it before they ask the user anything.
 //
 //   node scan.mjs --project <dir>

@@ -1,6 +1,6 @@
 {
   "name": "hecpack",
-  "version": "0.5.0",
+  "version": "0.5.3",
   "private": true,
   "type": "module",
   "description": "Development workflow for Claude Code that adapts to your stack.",

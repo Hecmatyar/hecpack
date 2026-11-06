@@ -1,6 +1,6 @@
 ---
 name: preview
-description: Show what hecpack would set up in this project without changing it. Detects the stack, recommends a level, finds rules and plugins for each technology, lists the rule documents already in the project, checks the installed plugins, skills and hooks against each other and against hecpack, plans the files for the lite, standard and deep levels and opens a local page with the choices and diffs. Use when the user runs /hecpack:preview or asks what hecpack would do here.
+description: Show what hecpack would set up in this project without changing it. Detects the stack, recommends a level, finds where the rules for each technology come from (hecpack packs, context7, a local skill), lists the rule documents already in the project, checks the installed plugins, skills and hooks against each other and against hecpack, plans the files for the lite, standard and deep levels and opens a local page with the choices and diffs. Use when the user runs /hecpack:preview or asks what hecpack would do here.
 argument-hint: "[--level lite|standard|deep] [--techs id,id] [--without designer,e2e-runner] [--try]"
 disable-model-invocation: true
 model: best
@@ -35,7 +35,7 @@ A dry run of the hecpack setup. **Never write, move or delete anything in the pr
 
    `<lang>` is the same code (`en` for English): the page's language and the reply language in the planned `config.json`. Without `--level` the recommended level is chosen. `--try` also clones the project's committed state into the data folder and writes the files of the chosen level there (uncommitted changes and `node_modules` are not in that copy).
 
-3. The script prints a short summary and opens the page. Retell the summary in the user's language in a few lines: the technologies found, the recommended level and why, the files the level would write, the plugins worth installing, the warnings, and the page path (the user can open it again from there).
+3. The script prints a short summary and opens the page. Retell the summary in the user's language in a few lines: the technologies found, the recommended level and why, the files the level would write, the warnings, and the page path (the user can open it again from there).
 
 4. The summary also lists the rule documents already in the project. When there are any, read the ones under 300 lines (Read) and hecpack's core (`${CLAUDE_PLUGIN_ROOT}/core/session.md`, `workflow.md`, `code.md`) and add three or four lines: what the project's rules add that hecpack lacks (to carry over at `/hecpack:init`), and where they contradict hecpack (one line per conflict: the two rules and the trade-off). Longer documents: name them and say `/hecpack:init` goes through them in full. Change nothing.
 

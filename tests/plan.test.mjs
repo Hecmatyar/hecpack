@@ -10,7 +10,7 @@ import { catalog, FIXTURES, packs, PLUGIN } from './helpers.mjs';
 const setup = (fixture, level, techIds) => {
   const root = join(FIXTURES, fixture);
   const detection = detect(root, catalog());
-  const sources = findSources({ techs: detection.techs, packs: packs(), plugins: [], enabled: new Set() });
+  const sources = findSources({ techs: detection.techs, packs: packs(), enabled: new Set() });
   const readProject = (path) => (existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : undefined);
   return { detection, files: plan({ detection, sources, level, techIds, readProject, date: '2026-11-03' }) };
 };

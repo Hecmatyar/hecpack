@@ -122,7 +122,6 @@ export const preview = (args) => {
     },
     selection: { level, techs: args.techs ?? detection.techs.map((tech) => tech.id), without: args.without },
     recommended: analysis.recommended,
-    suggestedPlugins: analysis.suggestedPlugins,
     modules: MODULES,
     docs: detection.docs,
     audit: analysis.audit,

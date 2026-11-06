@@ -1,13 +1,12 @@
-// Where the rules and know-how for each detected technology can come from, best first: a hecpack pack,
-// plugins in the marketplaces this Claude Code already knows (official before community), the current docs
-// through context7, and as the fallback a local skill /init would write from those docs.
+// Where the rules and know-how for each detected technology come from, best first: a hecpack pack, a
+// plugin the user already has on that is named after the technology (a fact about the setup, never a
+// suggestion), the current docs through context7, and as the fallback a local skill /init would write
+// from those docs. Nothing is looked up in the marketplaces: hecpack proposes only what it ships itself,
+// and a plugin matched by a word in its name (ui5-typescript-… for TypeScript) was noise.
 
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-
-const OFFICIAL = new Set(['claude-plugins-official']);
-const MAX_PER_TECH = 3;
 
 const readJson = (file) => {
   try {
@@ -15,26 +14,6 @@ const readJson = (file) => {
   } catch {
     return undefined;
   }
-};
-
-// Every plugin entry of every marketplace Claude Code has added, read from its local copy.
-export const readMarketplaces = (claudeHome = join(homedir(), '.claude')) => {
-  const known = readJson(join(claudeHome, 'plugins/known_marketplaces.json')) ?? {};
-  const entries = [];
-  for (const [marketplace, info] of Object.entries(known)) {
-    const catalog = info?.installLocation && readJson(join(info.installLocation, '.claude-plugin/marketplace.json'));
-    for (const plugin of catalog?.plugins ?? []) {
-      entries.push({
-        marketplace,
-        name: plugin.name,
-        description: plugin.description ?? '',
-        category: plugin.category,
-        homepage: plugin.homepage ?? plugin.repository,
-        tier: OFFICIAL.has(marketplace) ? 'official' : 'community',
-      });
-    }
-  }
-  return entries;
 };
 
 // Plugins already on: installed for the user, or enabled in the user's or the project's settings.
@@ -47,36 +26,14 @@ export const readEnabled = (claudeHome = join(homedir(), '.claude'), projectEnab
   return enabled;
 };
 
-const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const hasWord = (text, word) =>
-  new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(word.toLowerCase())}(?![\\p{L}\\p{N}])`, 'u').test(text.toLowerCase());
-
-// A plugin named after the technology is a strong match; one that only mentions it is weak and needs a
-// word long enough not to be an everyday word ("go", "nest" are left to names only).
-export const matchPlugins = (tech, plugins) => {
-  const scored = [];
-  for (const plugin of plugins) {
-    const nameWords = plugin.name.toLowerCase().split(/[-_.\s]+/);
-    const strong = tech.search.some((word) =>
-      word.includes(' ') ? plugin.name.toLowerCase().includes(word.replace(/\s+/g, '-')) : nameWords.includes(word.toLowerCase()),
-    );
-    const weak =
-      !strong &&
-      tech.search.some((word) => word.length >= 5 && hasWord(plugin.description, word)) &&
-      hasWord(plugin.description, tech.label.split(/[\s/]+/)[0]);
-    if (strong || weak) {
-      // Primary: the plugin's name starts with the technology's word (expo, typescript-lsp), not ui5-typescript-….
-      const primary = strong && tech.search.some((word) => nameWords[0] === word.toLowerCase().split(/\s+/)[0]);
-      scored.push({ ...plugin, primary, match: strong ? 'name' : 'description', score: (strong ? 10 : 1) + (plugin.tier === 'official' ? 2 : 0) });
-    }
-  }
-  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-  // Mentions are noisy: one is shown only when no plugin is named after the technology.
-  const strong = scored.filter((plugin) => plugin.match === 'name');
-  return (strong.length ? strong : scored.slice(0, 1)).slice(0, MAX_PER_TECH);
+// An enabled plugin counts for a technology only when its name starts with the technology's word
+// (expo@…, typescript-lsp@…), not when the word sits inside it (ui5-typescript-conversion@…).
+export const enabledFor = (tech, enabled) => {
+  const firstWords = tech.search.map((word) => word.toLowerCase().split(/\s+/)[0]);
+  return [...enabled].filter((id) => firstWords.includes(id.split('@')[0].toLowerCase().split(/[-_.]/)[0])).sort();
 };
 
-export const findSources = ({ techs, packs, plugins, enabled, mcp = [] }) => {
+export const findSources = ({ techs, packs, enabled = new Set(), mcp = [] }) => {
   const context7 =
     mcp.includes('context7') || [...enabled].some((id) => id.split('@')[0] === 'context7');
   return techs.map((tech) => {
@@ -85,25 +42,13 @@ export const findSources = ({ techs, packs, plugins, enabled, mcp = [] }) => {
     if (pack) {
       sources.push({ kind: 'pack', id: pack.id, label: `hecpack ${pack.label}`, status: pack.status, description: pack.description });
     }
-    for (const plugin of matchPlugins(tech, plugins)) {
-      const id = `${plugin.name}@${plugin.marketplace}`;
-      sources.push({
-        kind: 'plugin',
-        id,
-        label: plugin.name,
-        tier: plugin.tier,
-        match: plugin.match,
-        primary: plugin.primary,
-        description: plugin.description,
-        homepage: plugin.homepage,
-        enabled: enabled.has(id),
-        install: `claude plugin install ${id}`,
-      });
+    for (const id of enabledFor(tech, enabled)) {
+      sources.push({ kind: 'plugin', id, label: id.split('@')[0], enabled: true });
     }
     if (tech.docs === 'context7') {
       sources.push({ kind: 'docs', id: 'context7', label: 'context7 (current docs)', enabled: context7 });
     }
-    const covered = sources.some((source) => source.kind === 'pack' || (source.kind === 'plugin' && source.match === 'name'));
+    const covered = sources.some((source) => source.kind === 'pack' || source.kind === 'plugin');
     // Checks and docs need no skill of their own; rules for UI, platform, data or structure do.
     const needsRules = tech.covers.some((slot) => slot !== 'validation' && slot !== 'docs');
     if (!covered && needsRules) {

@@ -90,8 +90,6 @@ document.title = t.title;
 const state = {
   level: REPORT.selection.level,
   techs: new Set(REPORT.selection.techs),
-  plugins: new Set(REPORT.techs.flatMap((tech) => tech.sources)
-    .filter((s) => s.kind === 'plugin' && s.primary && s.tier === 'official' && !s.enabled).map((s) => s.id)),
   modules: new Set(),
   without: new Set(REPORT.selection.without ?? []),
 };
@@ -100,10 +98,7 @@ const esc = (text) => String(text ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp
 
 const chip = (source) => {
   if (source.kind === 'pack') return `<span class="chip pack" title="${esc(source.description)}">${esc(source.label)} <span class="tag">${t.planned}</span></span>`;
-  if (source.kind === 'plugin') {
-    const box = source.enabled ? '' : `<input type="checkbox" data-plugin="${esc(source.id)}" ${state.plugins.has(source.id) ? 'checked' : ''}>`;
-    return `<label class="chip" title="${esc(source.description)}">${box}${esc(source.label)} <span class="tag">${source.enabled ? t.on : t[source.tier]}</span></label>`;
-  }
+  if (source.kind === 'plugin') return `<span class="chip">${esc(source.label)} <span class="tag">${t.on}</span></span>`;
   if (source.kind === 'docs') return `<span class="chip">context7${source.enabled ? '' : ` <span class="tag">${t.docsOff}</span>`}</span>`;
   return `<span class="chip" title="${esc(source.description)}">${esc(source.label)} <span class="tag">${t.toWrite}</span></span>`;
 };
@@ -120,8 +115,7 @@ const commands = () => {
   const moduleArg = state.modules.size ? ` --modules ${[...state.modules].join(',')}` : '';
   const withoutArg = state.without.size ? ` --without ${[...state.without].map((id) => id.replace(/^hecpack:/, '')).join(',')}` : '';
   const rerun = `/hecpack:preview --level ${state.level}${techArg}${withoutArg}`;
-  const installs = [...state.plugins].map((id) => `claude plugin install ${id}`);
-  return { rerun, installs, tryit: `${rerun} --try`, init: `/hecpack:init --level ${state.level}${techArg}${moduleArg}${withoutArg}` };
+  return { rerun, tryit: `${rerun} --try`, init: `/hecpack:init --level ${state.level}${techArg}${moduleArg}${withoutArg}` };
 };
 
 const cmd = (text) => `<div class="cmd"><code>${esc(text)}</code><button data-copy="${esc(text)}">${t.copy}</button></div>`;
@@ -226,7 +220,6 @@ const render = () => {
       <h2>${t.commands}</h2>
       <div class="label">${t.initLabel}</div>${cmd(c.init)}
       <div class="label">${t.rerun}</div>${cmd(c.rerun)}
-      <div class="label">${t.install}</div>${c.installs.length ? c.installs.map(cmd).join('') : `<p class="note">${t.nothingToInstall}</p>`}
       <div class="label">${t.tryit}</div>${cmd(c.tryit)}
     </section>`;
 };
@@ -240,10 +233,10 @@ document.addEventListener('click', (event) => {
   }
 });
 document.addEventListener('change', (event) => {
-  const { tech, plugin, module, without } = event.target.dataset;
-  const set = tech ? state.techs : plugin ? state.plugins : module ? state.modules : without ? state.without : null;
+  const { tech, module, without } = event.target.dataset;
+  const set = tech ? state.techs : module ? state.modules : without ? state.without : null;
   if (!set) return;
-  const id = tech ?? plugin ?? module ?? without;
+  const id = tech ?? module ?? without;
   if (event.target.checked) set.add(id); else set.delete(id);
   render();
 });
